@@ -1,0 +1,35 @@
+{
+  "name": "syllame",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bbobbylon/syllame.git"
+  },
+  "author": "Robert C. Oliver, Jr. and Colin J. McClintic",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bbobbylon/syllame/issues"
+  },
+  "homepage": "https://github.com/bbobbylon/syllame#readme",
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.19.0",
+    "concurrently": "^5.3.0",
+    "express": "^4.17.1",
+    "is-empty": "^1.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.11.9",
+    "passport": "^0.4.1",
+    "passport-jwt": "^4.0.0",
+    "validator": "^13.5.2"
+  }
+}
