@@ -9,9 +9,8 @@
     "server": "nodemon server.js",
     "client": "npm start --prefix client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "heroku-postbuild" : "cd client && npm install client && npm run build "
+    "heroku-postbuild": "cd client && npm install client && npm run build "
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bbobbylon/syllame.git"

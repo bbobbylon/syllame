@@ -8,22 +8,24 @@ class Register extends Component {
   constructor() {
     super();
     this.state = {
-      name: "",
+      firstname: "",
+      lastname: "",
       email: "",
       password: "",
       password2: "",
       errors: {}
     };
   }
-  /* having issues with this method right now
+/*
   //lifecycle method 
     componentDidMount() {
         //if logged in and user goes to /register page, we need to redirect them to the dashboard
-        if(this.props.auth.isAuthenticated){
+        if (this.props.auth.isAuthenticated) {
             this.props.history.push("/dashboard");
         }
 }
 */
+
 componentWillReceiveProps(nextProps) {
     if (nextProps.errors) {
       this.setState({
@@ -37,7 +39,8 @@ onChange = e => {
 onSubmit = e => {
     e.preventDefault();
 const newUser = {
-      name: this.state.name,
+      firstname: this.state.firstname,
+      lastname: this.state.lastname,
       email: this.state.email,
       password: this.state.password,
       password2: this.state.password2
@@ -62,6 +65,7 @@ return (
                 Already have an account? <Link to="/login">Log in</Link>
               </p>
             </div>
+            
             <form noValidate onSubmit={this.onSubmit}>
               <div className="input-field col s12">
                 <input
@@ -74,9 +78,26 @@ return (
                     invalid: errors.firstname
                   })}
                 />
-                <label htmlFor="firstname">Name</label>
+                <label htmlFor="lastname">First Name</label>
+                <span className="red-text">{errors.lastname}</span>
+              </div>
+              <div className="input-field col s12">
+                <input
+                  onChange={this.onChange}
+                  value={this.state.lastname}
+                  error={errors.lastname}
+                  id="lastname"
+                  type="text"
+                  className={classnames("", {
+                    invalid: errors.lastname
+                  })}
+                />
+                <label htmlFor="firstname">Last Name</label>
                 <span className="red-text">{errors.firstname}</span>
               </div>
+
+
+
               <div className="input-field col s12">
                 <input
                   onChange={this.onChange}
@@ -88,6 +109,7 @@ return (
                     invalid: errors.email
                   })}
                 />
+
                 <label htmlFor="email">Email</label>
                 <span className="red-text">{errors.email}</span>
               </div>
