@@ -15,7 +15,7 @@ class Register extends Component {
       errors: {}
     };
   }
-  
+  /* having issues with this method right now
   //lifecycle method 
     componentDidMount() {
         //if logged in and user goes to /register page, we need to redirect them to the dashboard
@@ -23,6 +23,7 @@ class Register extends Component {
             this.props.history.push("/dashboard");
         }
 }
+*/
 componentWillReceiveProps(nextProps) {
     if (nextProps.errors) {
       this.setState({
