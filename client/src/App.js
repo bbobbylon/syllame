@@ -11,6 +11,9 @@ import Register from "./components/auth/Register";
 import Login from "./components/auth/Login";
 import PrivateRoute from "./components/privateroute/PrivateRoute";
 import Dashboard from "./components/dashboard/Dashboard";
+import CreateSyllabus from "./components/createSyllabus/CreateSyllabus";
+import ViewSyllabus from "./components/viewSyllabus/ViewSyllabus";
+
 // Check for token to keep user logged in
 if (localStorage.jwtToken) {
   // Set auth token header auth
@@ -41,6 +44,8 @@ class App extends Component {
             <Route exact path="/login" component={Login} />
             <Switch>
               <PrivateRoute exact path="/dashboard" component={Dashboard} />
+              <PrivateRoute exact path="/createSyllabus" component={CreateSyllabus} />
+              <PrivateRoute exact path="/viewSyllabus" component={ViewSyllabus} />
             </Switch>
           </div>
         </Router>
