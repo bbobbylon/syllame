@@ -15,7 +15,7 @@ return (
         <div className="row">
           <div className="col s12 center-align">
             <h4>
-              <b>Hey there,</b> {user.name.split(" ")[0]}
+              <b>Hey there,</b> {user.firstname.split(" ")[0]}
               <p className="flow-text grey-text text-darken-1">
                 Welcome to SyllaMe! Start building your syllabi or view your documents below.
               </p>
