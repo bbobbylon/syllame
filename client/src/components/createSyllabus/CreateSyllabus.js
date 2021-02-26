@@ -168,7 +168,31 @@ return (
                 <div>
                   <label>Course Credit Hours: </label>
                   <br />
-                  <input type="text" name="creditHours" onChange={this.onChangeCreditHours} onSubmit = {this.onSubmit} value={this.state.creditHours} />
+                  <select ref="creditHours"
+                    required
+                    value={this.state.creditHours}
+                    onChange={this.onChangeCreditHours}>
+                    <option
+                      key={1}
+                      value={1}>{1}
+                    </option>
+                    <option
+                      key={2}
+                      value={2}>{2}
+                    </option>
+                    <option
+                      key={3}
+                      value={3}>{3}
+                    </option>
+                    <option
+                      key={4}
+                      value={4}>{4}
+                    </option>
+                    <option
+                      key={5}
+                      value={5}>{5}
+                    </option>
+                  </select>
                 </div>
                 <br/>
                 <div>
