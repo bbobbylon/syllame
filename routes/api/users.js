@@ -1,128 +1,127 @@
+/**
+ * User routes: register, login, and "who am I".
+ *
+ * Mounted at `/api/users` by `app.js`, so the full paths are:
+ *   POST /api/users/register
+ *   POST /api/users/login
+ *   GET  /api/users/current   (requires `Authorization: Bearer <token>`)
+ *
+ * All handlers are `async`. Express 5 forwards a rejected promise from an
+ * async handler to the error middleware automatically, which is why there is
+ * no try/catch boilerplate here (Express 4 silently dropped those errors).
+ */
+
 const express = require("express");
-const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const keys = require("../../config/keys");
+const passport = require("passport");
 
-//here we will load our input validation
+const env = require("../../config/env");
 const validateRegisterInput = require("../../validation/register");
 const validateLoginInput = require("../../validation/login");
-
-//here we load our user model
-
 const User = require("../../models/user");
 
+const router = express.Router();
 
+/** bcrypt cost factor. 10 is the conventional balance of security vs. speed. */
+const SALT_ROUNDS = 10;
 
-/*
+/**
+ * @route  POST /api/users/register
+ * @desc   Create a new user account.
+ * @access Public
+ *
+ * Steps:
+ *  1. Validate the body. Bad input returns 400 with a field -> message map that
+ *     the React forms display next to each input.
+ *  2. Reject the email if an account already exists (also 400 so the form can
+ *     show it inline).
+ *  3. Hash the password with bcrypt. Hashing is one-way: we can later check a
+ *     guess against the hash but never recover the original.
+ *  4. Save and return the new user. The password hash is stripped by the
+ *     model's `toJSON` transform.
+ */
+router.post("/register", async (req, res) => {
+  const { errors, isValid } = validateRegisterInput(req.body);
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
 
-Now we will create our register endpoint.
-1. We will pull ~errors~ and ~isValid~ from validateRegisterInput(req.body) function to check for validation
-2. If valid, use MongoDB User.findOne() function to see if the user exists
-If new user, fill in ~name, password , email~ with data that was sent in the body of the request
-Then we will use ~bcryptjs~ for our password hashing before storing it into the database
+  const email = String(req.body.email).toLowerCase().trim();
+  const existing = await User.findOne({ email });
+  if (existing) {
+    return res.status(400).json({ email: "Email already exists" });
+  }
 
-*/
-
-
-//@route POST api/users/register
-// @desc Register a user
-//@access public
-router.post("/register", (req, res) => {
-    //inside of this router.post functiom , we will do our form validation
-    const {errors, isValid} = validateRegisterInput(req.body);
-    
-
-    //here we check the validation
-    if(!isValid) {
-        return res.status(400).json(errors)
-    }
-
-    User.findOne({email: req.body.email}).then(user => {
-        if(user){
-            return res.status(400).json({email: "Email already exists"});
-        } 
-        else {
-            const newUser = new User({
-                firstname: req.body.firstname,
-                lastname: req.body.lastname,
-                email: req.body.email,
-                password: req.body.password
-            });
-
-            //make sure to hash the password before saving to the database
-            bcrypt.genSalt(10, (err, salt) => {
-                bcrypt.hash(newUser.password, salt, (err,hash) => {
-                    if (err) throw err;
-                    newUser.password = hash;
-                    newUser
-                    .save()
-                    .then(user => res.json(user))
-                    .catch(err => console.log(err));
-                });
-            });
-        }
-    });
-});
-
-
-/*
-Next step is our login route, where we do the same first two steps as the register endpoint. 
-After that, use bcryptjs to compare the password the user submitted to the hashed password that is saved in the database
-If match, JWT Payload is created
-now we sign the JWT(includes payload, keys.secretOrKey from keys.js) and set an expiration time
-if successful, connect the JWT to Bearer string in passport.js
-*/
-// @route POST api/users/login
-// @desc Login user and return JWT token
-// @access Public
-router.post("/login", (req, res) => {
-    // Form validation
-  const { errors, isValid } = validateLoginInput(req.body);
-  // Check validation
-    if (!isValid) {
-      return res.status(400).json(errors);
-    }
-  const email = req.body.email;
-    const password = req.body.password;
-  // Find user by email
-    User.findOne({ email }).then(user => {
-      // Check if user exists
-      if (!user) {
-        return res.status(404).json({ emailnotfound: "Email not found" });
-      }
-  // Check password
-      bcrypt.compare(password, user.password).then(isMatch => {
-        if (isMatch) {
-          // User matched
-          // Create JWT Payload
-          const payload = {
-            id: user.id,
-            firstname: user.firstname,
-            lastname: user.lastname
-          };
-  // Sign token
-          jwt.sign(
-            payload,
-            keys.secretOrKey,
-            {
-              expiresIn: 31556926 // 1 year in seconds
-            },
-            (err, token) => {
-              res.json({
-                success: true,
-                token: "Bearer " + token
-              });
-            }
-          );
-        } else {
-          return res
-            .status(400)
-            .json({ passwordincorrect: "Password incorrect" });
-        }
-      });
-    });
+  const hash = await bcrypt.hash(req.body.password, SALT_ROUNDS);
+  const user = await User.create({
+    firstname: req.body.firstname,
+    lastname: req.body.lastname,
+    email,
+    password: hash
   });
 
-  //export so that we can use this elsewhere
-  module.exports = router;
+  return res.status(201).json(user);
+});
+
+/**
+ * @route  POST /api/users/login
+ * @desc   Verify credentials and return a signed JWT.
+ * @access Public
+ *
+ * A JWT is a signed statement ("user 123 logged in, valid until <time>") that
+ * the client stores and sends back on every request. The server does not keep
+ * session state; it just checks the signature with `env.jwtSecret`.
+ *
+ * Note: a wrong email and a wrong password both return 400 with distinct
+ * messages because the existing UI shows them under separate fields. From a
+ * security standpoint a single generic message is preferable because it does
+ * not confirm which emails are registered; see IMPROVEMENTS.md.
+ */
+router.post("/login", async (req, res) => {
+  const { errors, isValid } = validateLoginInput(req.body);
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
+  const email = String(req.body.email).toLowerCase().trim();
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ emailnotfound: "Email not found" });
+  }
+
+  const isMatch = await bcrypt.compare(req.body.password, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ passwordincorrect: "Password incorrect" });
+  }
+
+  // Only put non-sensitive, useful-to-the-UI data in the payload: anyone who
+  // holds the token can decode (but not alter) it.
+  const payload = {
+    id: user.id,
+    firstname: user.firstname,
+    lastname: user.lastname
+  };
+
+  const token = jwt.sign(payload, env.jwtSecret, { expiresIn: env.jwtExpiresIn });
+  return res.json({ success: true, token: `Bearer ${token}` });
+});
+
+/**
+ * @route  GET /api/users/current
+ * @desc   Return the user that the presented JWT belongs to.
+ * @access Private
+ *
+ * `passport.authenticate("jwt", { session: false })` runs the strategy from
+ * `config/passport.js`. On success `req.user` is the Mongoose document; on
+ * failure Passport responds 401 before this handler runs.
+ */
+router.get(
+  "/current",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    res.json(req.user);
+  }
+);
+
+module.exports = router;
