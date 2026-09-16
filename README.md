@@ -12,6 +12,7 @@ Authors: Robert C. Oliver Jr. and Colin J. McClintic
 | Database | MongoDB via Mongoose 9                                            |
 | Tests    | Node's built-in test runner (server), Vitest + Testing Library (client) |
 | CI       | GitHub Actions (`.github/workflows/ci.yml`)                       |
+| Hosting  | Render (`render.yaml`) + MongoDB Atlas                            |
 
 > **Upgrading from the 2021 version?** Read [What changed in 2.0](#what-changed-in-20-and-why)
 > and [IMPROVEMENTS.md](IMPROVEMENTS.md). One action is urgent: rotate the MongoDB
@@ -33,6 +34,7 @@ syllame/
 ├── validation/          # Server-side form validation
 ├── test/                # Server tests (node --test)
 ├── .env.example         # Template for your local .env
+├── render.yaml          # Render deployment blueprint
 └── client/              # React app (Vite)
     ├── index.html
     ├── vite.config.js   # Dev proxy (/api -> :5000), build, and Vitest settings
@@ -149,31 +151,85 @@ URL to `index.html` so React Router can handle deep links like `/dashboard`.
 
 ---
 
-## Deployment (cloud)
+## Deployment: Render + MongoDB Atlas
 
-The app is one Node process plus a MongoDB connection, so any Node host works.
-The steps below are the same on Render, Railway, Fly.io or Heroku; the only
-difference is where you click.
+The app is one Node process plus a MongoDB connection. In production Express
+serves both the API and the compiled React app, so a single Render **Web
+Service** and a free Atlas cluster are all you need. Total cost on the free
+tiers: $0.
 
-1. **Database**: create a MongoDB Atlas cluster, add a database user, allow
-   network access from your host (or `0.0.0.0/0` while testing), and copy the
-   connection string.
-2. **Create a Web Service** from this GitHub repo.
-3. **Build command**: `npm install && npm run build`
-   (`npm install` triggers the root `postinstall`, which installs the client.)
-4. **Start command**: `npm start`
-5. **Environment variables**: set `MONGO_URI`, `JWT_SECRET`, and
-   `NODE_ENV=production`. Do not set `PORT`; the platform injects it.
-6. Deploy. Visit `/api/health` to confirm the API is up.
+```
+Browser  ──HTTPS──▶  Render web service (Express: /api/* + client/dist)  ──▶  MongoDB Atlas
+```
 
-Notes:
+### Step 1: MongoDB Atlas (the database)
 
-- Heroku's old `heroku-postbuild` script was removed; the `postinstall` +
-  `build` pair above is portable across hosts. If you do use Heroku, its
-  Node buildpack runs `npm install` then `npm run build` automatically.
-- For automatic deploys, most hosts let you enable "deploy on push to
-  `master`". Combined with the CI workflow below, that gives you: push,
-  tests run, green build deploys.
+1. Sign in at <https://cloud.mongodb.com> and create a free **M0** cluster.
+2. **Database Access** -> Add New Database User. Choose password auth, give it
+   read/write to any database, and save the password somewhere safe. Do not
+   reuse the old committed one.
+3. **Network Access** -> Add IP Address. Render's outbound IP addresses are
+   listed on your service page under "Connect" once it exists; add those. While
+   testing, `0.0.0.0/0` (allow from anywhere) is acceptable, but tighten it
+   afterwards.
+4. **Connect** -> Drivers -> copy the connection string. It looks like
+   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/syllame?retryWrites=true&w=majority`.
+   Put your real password in and set the database name (`syllame`) before the `?`.
+
+### Step 2: Render (the server) via Blueprint, recommended
+
+`render.yaml` in the repo root already describes the service: build and start
+commands, health check, Node version and environment variables.
+
+1. Sign in at <https://dashboard.render.com>, **New** -> **Blueprint**.
+2. Connect your GitHub account if asked and pick `bbobbylon/syllame`.
+   Render reads `render.yaml` from the branch you select.
+3. Render shows the service it will create and asks for the one value the
+   file does not contain: paste your Atlas connection string as `MONGO_URI`.
+   `JWT_SECRET` is generated for you.
+4. Click **Apply**. The first build takes a few minutes: `npm install`,
+   `npm run build`, then `npm start`.
+5. When the deploy is live, open `https://<your-service>.onrender.com/api/health`.
+   You should see `{"status":"ok",...}`. Then open the root URL and register
+   a user.
+
+### Step 2 (alternative): Render manually
+
+If you prefer clicking through the dashboard, **New** -> **Web Service**,
+pick the repo, and enter:
+
+| Setting            | Value                             |
+| ------------------ | --------------------------------- |
+| Runtime            | Node                              |
+| Build command      | `npm install && npm run build`    |
+| Start command      | `npm start`                       |
+| Health check path  | `/api/health`                     |
+| Instance type      | Free                              |
+
+Environment variables: `NODE_ENV=production`, `NODE_VERSION=22.22.2`,
+`MONGO_URI=<your Atlas string>`, `JWT_SECRET=<long random string>`.
+Do not set `PORT`; Render injects it and `config/env.js` reads it.
+
+### Things that bite people
+
+- **Dev dependencies under `NODE_ENV=production`.** npm skips
+  `devDependencies` when that variable is set, which would leave the client
+  without Vite and make the build fail with `vite: not found`. The root
+  `postinstall` script passes `--include=dev` to the client install so the
+  build works regardless. If you ever change that script, keep the flag.
+- **Free tier sleeps.** After about 15 minutes with no traffic Render spins the
+  service down. The next request takes 30 to 60 seconds while it wakes. Paid
+  instances stay warm.
+- **Atlas network access.** `MongoServerSelectionError` or a 5-second
+  connection timeout in the Render logs almost always means Render's IP is not
+  allowed in Atlas, or the password in `MONGO_URI` is wrong.
+- **Auto-deploy.** Render redeploys on every push to the connected branch by
+  default. Together with the CI workflow below, the flow is: push, GitHub runs
+  tests, Render rebuilds. Note that Render does not wait for CI to pass; if you
+  want that gate, turn off auto-deploy and use a deploy hook from the workflow.
+- **Other hosts.** Railway, Fly.io and Heroku work with the same build and
+  start commands and the same three environment variables. Only `render.yaml`
+  is Render-specific.
 
 ---
 
