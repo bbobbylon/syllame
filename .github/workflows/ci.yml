@@ -1,0 +1,52 @@
+# Continuous integration: runs on every push and pull request.
+#
+# Two jobs run in parallel, one per package. Each installs from the lockfile
+# (`npm ci`), then runs the same commands you run locally. If any step fails
+# the commit is marked red on GitHub.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  server:
+    name: Server (Express API)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      # --ignore-scripts skips the root `postinstall` that installs the client;
+      # the client job handles that separately.
+      - run: npm ci --ignore-scripts
+      - run: npm test
+
+  client:
+    name: Client (React / Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      # Keep the compiled site as a downloadable artifact so a deploy job or a
+      # reviewer can grab exactly what CI built.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+          retention-days: 7
