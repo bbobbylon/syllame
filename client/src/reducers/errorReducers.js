@@ -1,10 +1,21 @@
+/**
+ * Errors slice: holds the field -> message object the API returns on a 400,
+ * so forms can show messages next to the right inputs.
+ */
+
 import { GET_ERRORS } from "../actions/types";
+
 const initialState = {};
-// eslint-disable-next-line import/no-anonymous-default-export
-export default function(state = initialState, action) {
+
+/**
+ * @param {Record<string, string>} state
+ * @param {{ type: string, payload?: Record<string, string> }} action
+ * @returns {Record<string, string>}
+ */
+export default function errorReducer(state = initialState, action) {
   switch (action.type) {
     case GET_ERRORS:
-      return action.payload;
+      return action.payload ?? {};
     default:
       return state;
   }

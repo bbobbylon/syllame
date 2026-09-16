@@ -1,13 +1,19 @@
-//this file is for deleting the Authorization header for our ~axios~ requests, depending on whether a user is logged in or not
+/**
+ * Adds or removes the `Authorization` header that axios sends on every
+ * request. The server's Passport JWT strategy reads this header.
+ */
 
 import axios from "axios";
-const setAuthToken = token => {
+
+/**
+ * @param {string | false | null | undefined} token - The full "Bearer ..." string
+ *   to attach, or a falsy value to remove the header (logout).
+ * @returns {void}
+ */
+export default function setAuthToken(token) {
   if (token) {
-    // Apply authorization token to every request if logged in
     axios.defaults.headers.common["Authorization"] = token;
   } else {
-    // Delete auth header
     delete axios.defaults.headers.common["Authorization"];
   }
-};
-export default setAuthToken;
+}

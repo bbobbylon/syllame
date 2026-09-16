@@ -1,34 +1,53 @@
-//reducers are pure functions that specify how an app state should change in response to an action, such as a clicking of a button
-//reducers respond with the new state, which is passed to our store, then to our UI
-//so, we will first import ~actions~
-//next we will define our initialState, then we define how our state should change based on actions via a switch statement
+/**
+ * Auth slice of the Redux state.
+ *
+ * A reducer is a pure function: (previous state, action) -> next state. It
+ * never mutates its input and never does I/O; that is what makes Redux state
+ * predictable and easy to test (see `authReducers.test.js`).
+ */
 
-import {
-    SET_CURRENT_USER,
-    USER_LOADING
-  } from "../actions/types";
-  const isEmpty = require("is-empty");
-  const initialState = {
-    isAuthenticated: false,
-    user: {},
-    loading: false
-  };
+import { SET_CURRENT_USER, USER_LOADING } from "../actions/types";
 
-// eslint-disable-next-line import/no-anonymous-default-export
-export default function(state = initialState, action) {
-switch (action.type) {
+/**
+ * Returns true for `{}`, `null`, `undefined`, and `""`. Replaces the
+ * `is-empty` package the original code required from CommonJS.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isEmpty(value) {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "object" && Object.keys(value).length === 0) ||
+    (typeof value === "string" && value.trim().length === 0)
+  );
+}
+
+export const initialState = {
+  isAuthenticated: false,
+  /** Decoded JWT payload: `{ id, firstname, lastname, iat, exp }` when logged in. */
+  user: {},
+  loading: false
+};
+
+/**
+ * @param {typeof initialState} state
+ * @param {{ type: string, payload?: unknown }} action
+ * @returns {typeof initialState}
+ */
+export default function authReducer(state = initialState, action) {
+  switch (action.type) {
     case SET_CURRENT_USER:
-    return {
+      return {
         ...state,
         isAuthenticated: !isEmpty(action.payload),
-        user: action.payload
-    };
+        user: action.payload ?? {},
+        loading: false
+      };
     case USER_LOADING:
-    return {
-        ...state,
-        loading: true
-    };
+      return { ...state, loading: true };
     default:
-    return state;
-}
+      return state;
+  }
 }
