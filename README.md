@@ -29,8 +29,8 @@ syllame/
 ├── config/
 │   ├── env.js           # Reads and validates environment variables
 │   └── passport.js      # JWT strategy: turns a Bearer token into req.user
-├── models/user.js       # Mongoose User schema
-├── routes/api/users.js  # POST /register, POST /login, GET /current
+├── models/              # Mongoose schemas: user.js, syllabus.js
+├── routes/api/          # users.js (auth) and syllabi.js (CRUD)
 ├── validation/          # Server-side form validation
 ├── test/                # Server tests (node --test)
 ├── .env.example         # Template for your local .env
@@ -42,8 +42,9 @@ syllame/
         ├── main.jsx     # Mounts React, restores login from localStorage
         ├── App.jsx      # Routes
         ├── store.js     # Redux store (Redux Toolkit configureStore)
-        ├── actions/     # Thunks that call the API
+        ├── actions/     # Auth thunks that call the API
         ├── reducers/    # auth and errors slices
+        ├── api/         # Plain axios helpers for syllabus endpoints
         └── components/  # Pages and shared UI
 ```
 
@@ -132,10 +133,58 @@ npm test               # server: validation + HTTP tests, no MongoDB needed
 cd client && npm test  # client: reducers, routing guard, forms (jsdom)
 ```
 
-The server tests start the real Express app on a random port and only hit
-paths that finish before a database query (validation 400s, health check, JWT
-rejection). That keeps CI simple. Tests that need a database are a listed
-improvement.
+Server tests come in two flavours:
+
+- **No database needed** (`validation.test.js`, `syllabus-validation.test.js`,
+  `api.test.js`): pure functions plus HTTP calls that finish before any query
+  (validation 400s, 401s, security headers, rate limiting).
+- **Database-backed** (`db.test.js`): register, log in, then create / list /
+  read / update / delete syllabi and prove one user cannot touch another's.
+  It runs only when `MONGO_URI` is set and **drops that database afterwards**,
+  so point it at a scratch database:
+
+  ```bash
+  MONGO_URI=mongodb://127.0.0.1:27017/syllame_test npm test
+  ```
+
+  CI starts a temporary MongoDB container so this suite always runs there.
+
+---
+
+## API reference
+
+All responses are JSON. Validation failures return `400` with a
+`{ field: "message" }` object the forms display inline.
+
+| Method | Path                   | Auth   | Purpose                                   |
+| ------ | ---------------------- | ------ | ----------------------------------------- |
+| POST   | `/api/users/register`  | none   | Create an account. Returns the user (no hash). |
+| POST   | `/api/users/login`     | none   | Returns `{ token: "Bearer ..." }`           |
+| GET    | `/api/users/current`   | Bearer | The user the token belongs to             |
+| GET    | `/api/syllabi`         | Bearer | My syllabi, most recently updated first   |
+| POST   | `/api/syllabi`         | Bearer | Create a syllabus                         |
+| GET    | `/api/syllabi/:id`     | Bearer | One of my syllabi (`404` if not mine)     |
+| PUT    | `/api/syllabi/:id`     | Bearer | Update one of my syllabi                  |
+| DELETE | `/api/syllabi/:id`     | Bearer | Delete one of my syllabi (`204`)          |
+| GET    | `/api/health`          | none   | `{ status: "ok" }` for uptime checks      |
+
+Send the token as `Authorization: Bearer <token>`; the client does this
+automatically after login. Login and register are rate limited to 20 attempts
+per IP per 15 minutes (`429` afterwards).
+
+### Pages
+
+| URL                  | What it shows                                        |
+| -------------------- | ---------------------------------------------------- |
+| `/`                  | Landing page                                         |
+| `/register`, `/login`| Auth forms                                           |
+| `/dashboard`         | Greeting, quick actions, recently updated syllabi    |
+| `/syllabi`           | My syllabi with edit / delete                        |
+| `/syllabi/new`       | Create form                                          |
+| `/syllabi/:id`       | Print-friendly view; "Print / PDF" uses the browser  |
+| `/syllabi/:id/edit`  | Edit form                                            |
+
+The 1.0 URLs `/createSyllabus` and `/viewSyllabus` redirect to the new pages.
 
 ---
 
@@ -262,6 +311,8 @@ alternatives that were rejected:
 | ODM | Mongoose 5 | Mongoose 9 | The `useNewUrlParser`/`useUnifiedTopology` flags are gone (they became the only behavior). Queries are `await`ed instead of chained `.then`. Requires Node 20.19+. |
 | Auth libs | passport 0.4, jsonwebtoken 8, bcryptjs 2 | 0.7, 9, 3 | No API changes for how this app uses them; the majors fix security issues. |
 | Secrets | Hard-coded in `config/keys.js` | Environment variables via `dotenv` | See the warning at the top of this file. |
+| Hardening | none | `helmet` (CSP and friends), `express-rate-limit` on auth routes | The CSP explicitly allows the Materialize CDN and Google Fonts that `index.html` loads; everything else is same-origin only. |
+| Syllabi | Form posted to a route that did not exist | `Syllabus` model + owner-scoped CRUD API + list / edit / print pages | The app's actual purpose now works end to end. |
 | Tests | One CRA placeholder that could never pass | 12 server + 14 client tests | The old test looked for "learn react" text that did not exist. |
 | Repo | `node_modules` committed (46,833 files) | Ignored | Dependencies are reproducible from the lockfiles; committing them bloats every clone and diff. |
 
