@@ -1,13 +1,195 @@
+/*
+ * App-wide styles. Materialize (loaded from the CDN in index.html) provides
+ * the grid, buttons and inputs; this file only adds what Materialize lacks.
+ */
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.page-content {
+  padding-bottom: 3rem;
+}
+
+/* --- Buttons that fill their grid column on phones --- */
+.full-width-btn {
+  width: 100%;
+  border-radius: 3px;
+  letter-spacing: 1.5px;
+  margin-top: 1rem;
+}
+
+/* --- Navbar --- */
+.nav-toggle {
+  height: 64px;
+  line-height: 64px;
+  padding: 0 12px;
+}
+.nav-toggle i {
+  line-height: 64px;
+}
+.nav-links .nav-logout {
+  height: 64px;
+  line-height: 64px;
+  padding: 0 15px;
+  font-size: 1rem;
+  text-transform: none;
+}
+.nav-links li a.active {
+  border-bottom: 3px solid #2979ff;
+}
+@media (max-width: 992px) {
+  /* Collapsed by default; the toggle button opens it as a vertical list. */
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    flex-direction: column;
+  }
+  .nav-links.nav-links-open {
+    display: flex;
+  }
+  .nav-links li {
+    float: none;
+  }
+  .nav-links li a,
+  .nav-links .nav-logout {
+    display: block;
+    width: 100%;
+    text-align: left;
+    height: 48px;
+    line-height: 48px;
+  }
+}
+@media (max-width: 600px) {
+  .nav-toggle,
+  .nav-toggle i {
+    height: 56px;
+    line-height: 56px;
+  }
+  .nav-links {
+    top: 56px;
+  }
+}
+
+/* --- Syllabus list --- */
+.page-header {
+  margin-bottom: 0;
+}
+.right-align-m {
+  text-align: left;
+}
+@media (min-width: 601px) {
+  .right-align-m {
+    text-align: right;
+  }
+}
+.syllabus-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.syllabus-title {
+  font-size: 1.1rem;
+}
+.small-text {
+  font-size: 0.85rem;
+}
+.syllabus-actions {
+  white-space: nowrap;
+}
+
+/* --- Syllabus form --- */
+.syllabus-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0.5rem 1rem 0;
+  margin: 1.5rem 0 0;
+}
+.syllabus-section legend {
+  padding: 0 0.5rem;
+  color: #616161;
+  font-weight: 500;
+}
+.syllabus-field label {
+  display: block;
+  font-size: 0.9rem;
+  color: #616161;
+}
+.syllabus-field input.invalid,
+.syllabus-field textarea.invalid {
+  border-bottom: 1px solid #f44336;
+  box-shadow: 0 1px 0 0 #f44336;
+}
+
+/* --- Syllabus detail / print --- */
+.detail-actions {
+  float: right;
+  display: inline-flex;
+  gap: 0.5rem;
+}
+.syllabus-header {
+  border-bottom: 2px solid #212121;
+  margin-bottom: 1rem;
+}
+.syllabus-print-section {
+  margin-bottom: 1.5rem;
+}
+.dl-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 0.5rem 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #eeeeee;
+}
+.dl-row dt {
+  font-weight: 500;
+  color: #424242;
+}
+.dl-row dd {
+  margin: 0;
+}
+.preserve-lines {
+  white-space: pre-wrap;
+}
+@media (max-width: 600px) {
+  .dl-row {
+    grid-template-columns: 1fr;
+  }
+  .detail-actions {
+    float: none;
+    display: flex;
+    margin-top: 0.5rem;
+  }
+}
+
+@media print {
+  /* Only the syllabus content reaches paper / "Save as PDF". */
+  .no-print,
+  .navbar-fixed {
+    display: none !important;
+  }
+  .page-content {
+    padding: 0;
+  }
+  .container {
+    width: 100%;
+    max-width: none;
+  }
+  body {
+    font-size: 12pt;
+    color: #000;
+  }
+  .syllabus-print-section {
+    break-inside: avoid;
+  }
 }
