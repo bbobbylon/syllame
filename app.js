@@ -10,9 +10,12 @@
 const path = require("node:path");
 const express = require("express");
 const passport = require("passport");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const env = require("./config/env");
 const usersRouter = require("./routes/api/users");
+const syllabiRouter = require("./routes/api/syllabi");
 
 /**
  * Creates and configures the Express app.
@@ -21,6 +24,52 @@ const usersRouter = require("./routes/api/users");
  */
 function createApp() {
   const app = express();
+
+  // Hosting platforms (Render, Heroku, ...) sit behind a reverse proxy, so the
+  // TCP peer is the proxy, not the visitor. Trusting exactly one hop lets
+  // Express read the real client IP from X-Forwarded-For, which the rate
+  // limiter below needs. `true` would trust any client-supplied header, which
+  // express-rate-limit rightly refuses.
+  app.set("trust proxy", 1);
+
+  // Security headers. Helmet sets a dozen defensive headers (no MIME
+  // sniffing, no framing by other sites, HSTS, ...). Its Content-Security-
+  // Policy defaults to "same origin only", which would block the Materialize
+  // CSS/JS and Google Fonts that index.html loads from CDNs, so those hosts
+  // are allowed explicitly. `'unsafe-inline'` for styles is needed because
+  // React's `style={{...}}` props and Materialize both write inline styles.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          "default-src": ["'self'"],
+          "script-src": ["'self'", "https://cdnjs.cloudflare.com"],
+          "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+          "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+          "img-src": ["'self'", "data:"],
+          "connect-src": ["'self'"],
+          "object-src": ["'none'"],
+          "frame-ancestors": ["'none'"]
+        }
+      },
+      // Nothing legitimately frames this app; match the CSP frame-ancestors rule.
+      frameguard: { action: "deny" },
+      // The app is same-origin; this header would otherwise block the
+      // Materialize JS from cdnjs in some browsers.
+      crossOriginEmbedderPolicy: false
+    })
+  );
+
+  // Throttle credential guessing: at most 20 login/register attempts per IP
+  // per 15 minutes. Everything else stays unlimited so normal use is unaffected.
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { general: "Too many attempts. Please wait 15 minutes and try again." }
+  });
+  app.use(["/api/users/login", "/api/users/register"], authLimiter);
 
   // Body parsing. Express 5 ships these built in; the separate `body-parser`
   // package the original code used is no longer needed.
@@ -33,6 +82,7 @@ function createApp() {
 
   // API routes.
   app.use("/api/users", usersRouter);
+  app.use("/api/syllabi", syllabiRouter);
 
   /** Lightweight health check for uptime monitors and hosting platforms. */
   app.get("/api/health", (_req, res) => {

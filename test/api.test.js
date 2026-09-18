@@ -87,3 +87,46 @@ describe("GET /api/users/current", () => {
     assert.equal(res.status, 401);
   });
 });
+
+describe("/api/syllabi without a token", () => {
+  test("every method returns 401 before touching the database", async () => {
+    const attempts = [
+      ["GET", "/api/syllabi"],
+      ["POST", "/api/syllabi"],
+      ["GET", "/api/syllabi/000000000000000000000000"],
+      ["PUT", "/api/syllabi/000000000000000000000000"],
+      ["DELETE", "/api/syllabi/000000000000000000000000"]
+    ];
+    for (const [method, path] of attempts) {
+      const res = await fetch(baseUrl + path, { method });
+      assert.equal(res.status, 401, `${method} ${path}`);
+    }
+  });
+});
+
+describe("hardening", () => {
+  test("security headers are present", async () => {
+    const res = await fetch(`${baseUrl}/api/health`);
+    assert.ok(res.headers.get("content-security-policy"), "CSP header missing");
+    assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(res.headers.get("x-frame-options"), "DENY");
+  });
+
+  test("CSP allows the CDNs index.html depends on", async () => {
+    const csp = (await fetch(`${baseUrl}/api/health`)).headers.get("content-security-policy");
+    assert.match(csp, /script-src[^;]*cdnjs\.cloudflare\.com/);
+    assert.match(csp, /style-src[^;]*fonts\.googleapis\.com/);
+    assert.match(csp, /font-src[^;]*fonts\.gstatic\.com/);
+  });
+
+  test("login is rate limited after 20 attempts", async () => {
+    // The limiter is per-IP; 127.0.0.1 in this test process. Any body works
+    // because validation runs after the limiter.
+    let last;
+    for (let i = 0; i < 21; i++) {
+      last = await postJson("/api/users/login", {});
+    }
+    assert.equal(last.status, 429);
+    assert.match(last.body.general, /Too many attempts/);
+  });
+});
