@@ -166,8 +166,9 @@ Server tests come in two flavours:
   (validation 400s, 401s, security headers, rate limiting).
 - **Database-backed** (`db.test.js`): register, log in, then create / list /
   read / update / delete syllabi and prove one user cannot touch another's.
-  It runs only when `MONGO_URI` is set and **drops that database afterwards**,
-  so point it at a scratch database:
+  It runs only when `MONGO_URI` is set. Each test file uses its own database
+  named after the one in the URI (`..._api`, `..._seed`) and **drops it
+  afterwards**, so point it at a scratch server:
 
   ```bash
   MONGO_URI=mongodb://127.0.0.1:27017/syllame_test npm test

@@ -15,7 +15,10 @@ const User = require("../models/user");
 const Syllabus = require("../models/syllabus");
 const { seed, SEED_USERS, SEED_PASSWORD, SEED_SYLLABI } = require("../scripts/seed");
 
-const MONGO_URI = process.env.MONGO_URI;
+const { testDatabaseUri } = require("./helpers/db");
+
+/** Own database per test file; see helpers/db.js. */
+const MONGO_URI = testDatabaseUri("seed");
 
 describe("seed script", { skip: !MONGO_URI && "MONGO_URI not set" }, () => {
   let server;

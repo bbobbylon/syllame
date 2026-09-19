@@ -20,7 +20,10 @@ const mongoose = require("mongoose");
 
 const createApp = require("../app");
 
-const MONGO_URI = process.env.MONGO_URI;
+const { testDatabaseUri } = require("./helpers/db");
+
+/** Own database per test file; see helpers/db.js. */
+const MONGO_URI = testDatabaseUri("api");
 
 describe("database-backed API", { skip: !MONGO_URI && "MONGO_URI not set" }, () => {
   /** @type {import("node:http").Server} */
