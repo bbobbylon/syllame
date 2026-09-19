@@ -1,0 +1,21 @@
+# Dependencies (never commit these; `npm install` recreates them from the lockfiles)
+node_modules/
+client/node_modules/
+
+# Environment files with real secrets (see .env.example for the template)
+.env
+.env.*
+!.env.example
+
+# Build output
+client/dist/
+client/build/
+coverage/
+
+# Editor / OS noise
+.DS_Store
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+.eslintcache

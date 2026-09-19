@@ -1,34 +1,34 @@
-/*
-This will be our validation flow for login (similar to register.js but different fields): 
-pull in ~validator~ and ~is-empty~ dependencies
-    export validateRegisterInput: it takes in ~data~ as a parameter, which is sent from our frontend registration form
-    instantiate ~errors~ object
-    convert all empty fields to empty string before running validation checks, since ~validator~ only works with strings
-    check for empty fields, make sure email format is valid, password requirements are met, and confirm passowords are the same using ~validator~ functions
-    return ~errors~ object with all errors contained along with isValid boolean to see if we have any errors
-*/
+/**
+ * Server-side validation for the login form. See `register.js` for why the
+ * server validates even though the browser does too.
+ */
 
 const Validator = require("validator");
 const isEmpty = require("is-empty");
+
+/**
+ * Validates a login payload.
+ *
+ * @param {object} data - Raw request body.
+ * @param {string} [data.email]
+ * @param {string} [data.password]
+ * @returns {{ errors: Record<string, string>, isValid: boolean }}
+ */
 module.exports = function validateLoginInput(data) {
-  let errors = {};
-// Convert empty fields to an empty string so we can use validator functions
-  data.email = !isEmpty(data.email) ? data.email : "";
-  data.password = !isEmpty(data.password) ? data.password : "";
-// Email checks
-  if (Validator.isEmpty(data.email)) {
+  const errors = {};
+
+  const email = isEmpty(data.email) ? "" : String(data.email);
+  const password = isEmpty(data.password) ? "" : String(data.password);
+
+  if (Validator.isEmpty(email)) {
     errors.email = "Email field is required";
-  } else if (!Validator.isEmail(data.email)) {
+  } else if (!Validator.isEmail(email)) {
     errors.email = "Email is invalid";
   }
-// Password checks
-  if (Validator.isEmpty(data.password)) {
+
+  if (Validator.isEmpty(password)) {
     errors.password = "Password field is required";
   }
-return {
-    errors,
-    isValid: isEmpty(errors)
-  };
+
+  return { errors, isValid: isEmpty(errors) };
 };
-
-

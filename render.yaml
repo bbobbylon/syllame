@@ -1,0 +1,46 @@
+# Render Blueprint: describes the SyllaMe web service as code.
+#
+# In the Render dashboard choose "New" -> "Blueprint", pick this repo, and
+# Render reads this file to create the service with everything below already
+# filled in. You will be prompted only for MONGO_URI (marked sync: false).
+#
+# Analogy: this is the recipe card. Instead of clicking through the dashboard
+# and typing the same settings every time, the settings live in git next to
+# the code they configure.
+#
+# Reference: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: syllame
+    runtime: node
+    plan: free            # Free tier sleeps after ~15 min idle; first request after that is slow.
+    # branch: master      # Uncomment to deploy from a branch other than the repo default.
+
+    # `npm install` triggers the root postinstall, which installs the client
+    # (including its build tools) even though NODE_ENV=production. Then the
+    # React app is compiled into client/dist for Express to serve.
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+
+    # Render pings this path to decide the deploy is healthy and to route
+    # traffic. It is defined in app.js.
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Pin the Node major used to build and run; matches .nvmrc / engines.
+      - key: NODE_VERSION
+        value: 22.22.2
+      # Your MongoDB Atlas connection string. `sync: false` means Render asks
+      # you for it at creation time and never stores it in this file.
+      - key: MONGO_URI
+        sync: false
+      # Render generates a long random value for you. Rotating it later logs
+      # every user out, which is the correct behavior for a JWT secret.
+      - key: JWT_SECRET
+        generateValue: true
+      # Optional: token lifetime in seconds (default in code is 1 day).
+      - key: JWT_EXPIRES_IN
+        value: "86400"

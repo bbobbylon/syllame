@@ -1,0 +1,67 @@
+# Continuous integration: runs on every push and pull request.
+#
+# Two jobs run in parallel, one per package. Each installs from the lockfile
+# (`npm ci`), then runs the same commands you run locally. If any step fails
+# the commit is marked red on GitHub.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  server:
+    name: Server (Express API)
+    runs-on: ubuntu-latest
+    # A throwaway MongoDB so test/db.test.js (register, login, syllabus CRUD)
+    # runs for real instead of being skipped. It lives only for this job.
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MONGO_URI: mongodb://127.0.0.1:27017/syllame_ci
+      JWT_SECRET: ci-only-secret
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      # --ignore-scripts skips the root `postinstall` that installs the client;
+      # the client job handles that separately.
+      - run: npm ci --ignore-scripts
+      - run: npm test
+
+  client:
+    name: Client (React / Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      # Keep the compiled site as a downloadable artifact so a deploy job or a
+      # reviewer can grab exactly what CI built.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+          retention-days: 7
