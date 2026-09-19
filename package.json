@@ -17,7 +17,8 @@
     "test": "node --test \"test/**/*.test.js\"",
     "test:client": "npm test --prefix client",
     "test:all": "npm test && npm run test:client",
-    "postinstall": "npm install --prefix client --include=dev"
+    "postinstall": "npm install --prefix client --include=dev",
+    "seed": "node scripts/seed.js"
   },
   "repository": {
     "type": "git",

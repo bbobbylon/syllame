@@ -32,6 +32,7 @@ syllame/
 ├── models/              # Mongoose schemas: user.js, syllabus.js
 ├── routes/api/          # users.js (auth) and syllabi.js (CRUD)
 ├── validation/          # Server-side form validation
+├── scripts/seed.js      # Loads test users and syllabi
 ├── test/                # Server tests (node --test)
 ├── .env.example         # Template for your local .env
 ├── render.yaml          # Render deployment blueprint
@@ -90,6 +91,30 @@ origin and no CORS setup is needed.
 
 Run either side alone with `npm run server` or `npm run client`.
 
+### Seed test data
+
+Instead of registering by hand, load two test accounts and four syllabi:
+
+```bash
+npm run seed            # adds or refreshes the seed data
+npm run seed -- --wipe  # empties users and syllabi first, then seeds
+```
+
+| Email               | Password      | Syllabi |
+| ------------------- | ------------- | ------- |
+| `alice@example.com` | `Password123` | 3       |
+| `bob@example.com`   | `Password123` | 1       |
+
+Log in as Alice to see a full syllabus (Introduction to Databases) on the
+detail and print pages; log in as Bob to confirm users only see their own.
+Running the script again replaces the seed users' data rather than
+duplicating it. It refuses to run when `NODE_ENV=production` unless you pass
+`--force`, since the passwords are public.
+
+MongoDB has no SQL files to import; the seed script is the equivalent. It has
+to be code rather than a data file because passwords are stored as bcrypt
+hashes, which a plain `mongoimport` cannot produce.
+
 ### Environment variables
 
 | Variable         | Required | Default       | Purpose                                              |
@@ -117,6 +142,7 @@ Root (`/`):
 | `npm run client`     | Client only (Vite dev server)                                  |
 | `npm start`          | API in production mode (no reload). Serves `client/dist` when `NODE_ENV=production` |
 | `npm run build`      | Builds the client into `client/dist`                           |
+| `npm run seed`       | Loads test accounts and syllabi (see Seed test data)           |
 | `npm test`           | Server tests                                                   |
 | `npm run test:client`| Client tests                                                   |
 | `npm run test:all`   | Both                                                           |
