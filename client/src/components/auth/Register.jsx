@@ -40,6 +40,7 @@ export default function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const loading = useSelector((state) => state.auth.loading);
   const errors = useSelector((state) => state.errors);
 
   // Already logged in? Registration makes no sense; go to the dashboard.
@@ -87,9 +88,10 @@ export default function Register() {
                   marginTop: "1rem"
                 }}
                 type="submit"
+                disabled={loading}
                 className="btn btn-large waves-effect waves-light hoverable blue accent-3"
               >
-                Sign up
+                {loading ? "Creating account..." : "Sign up"}
               </button>
             </div>
           </form>

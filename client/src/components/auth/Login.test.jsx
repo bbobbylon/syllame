@@ -14,9 +14,9 @@ describe("Login", () => {
     localStorage.clear();
   });
 
-  test("shows field errors returned by the API", async () => {
+  test("shows the generic error returned by the API", async () => {
     axios.post.mockRejectedValueOnce({
-      response: { status: 404, data: { emailnotfound: "Email not found" } }
+      response: { status: 401, data: { general: "Invalid email or password" } }
     });
     renderWithProviders(<Login />, { initialEntries: ["/login"] });
 
@@ -24,10 +24,16 @@ describe("Login", () => {
     await userEvent.type(screen.getByLabelText(/password/i), "secret1");
     await userEvent.click(screen.getByRole("button", { name: /login/i }));
 
-    expect(await screen.findByText("Email not found")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password");
+    expect(screen.getByRole("button", { name: /login/i })).toBeEnabled();
     expect(axios.post).toHaveBeenCalledWith("/api/users/login", {
       email: "nobody@example.com",
       password: "secret1"
     });
+  });
+
+  test("shows a success notice after registering", () => {
+    renderWithProviders(<Login />, { initialEntries: [{ pathname: "/login", state: { registered: true } }] });
+    expect(screen.getByRole("status")).toHaveTextContent(/account created/i);
   });
 });

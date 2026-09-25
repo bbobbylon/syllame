@@ -26,6 +26,12 @@ const router = express.Router();
 /** bcrypt cost factor. 10 is the conventional balance of security vs. speed. */
 const SALT_ROUNDS = 10;
 
+/** Sent for any failed login. One message, so emails cannot be enumerated. */
+const INVALID_CREDENTIALS = { general: "Invalid email or password" };
+
+/** A real bcrypt hash of a random string; used to equalize timing when the email is unknown. */
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", SALT_ROUNDS);
+
 /**
  * @route  POST /api/users/register
  * @desc   Create a new user account.
@@ -73,10 +79,9 @@ router.post("/register", async (req, res) => {
  * the client stores and sends back on every request. The server does not keep
  * session state; it just checks the signature with `env.jwtSecret`.
  *
- * Note: a wrong email and a wrong password both return 400 with distinct
- * messages because the existing UI shows them under separate fields. From a
- * security standpoint a single generic message is preferable because it does
- * not confirm which emails are registered; see IMPROVEMENTS.md.
+ * A wrong email and a wrong password both answer 401 with the same generic
+ * message. Distinguishing them (as 1.0 did) would let anyone confirm which
+ * addresses have accounts just by trying to log in.
  */
 router.post("/login", async (req, res) => {
   const { errors, isValid } = validateLoginInput(req.body);
@@ -86,13 +91,12 @@ router.post("/login", async (req, res) => {
 
   const email = String(req.body.email).toLowerCase().trim();
   const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(404).json({ emailnotfound: "Email not found" });
-  }
-
-  const isMatch = await bcrypt.compare(req.body.password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ passwordincorrect: "Password incorrect" });
+  // Compare against a dummy hash when the user is missing so both failure
+  // paths take about the same time; otherwise response timing would still
+  // reveal whether the email exists.
+  const isMatch = await bcrypt.compare(req.body.password, user ? user.password : DUMMY_HASH);
+  if (!user || !isMatch) {
+    return res.status(401).json(INVALID_CREDENTIALS);
   }
 
   // Only put non-sensitive, useful-to-the-UI data in the payload: anyone who

@@ -96,9 +96,13 @@ describe("database-backed API", { skip: !MONGO_URI && "MONGO_URI not set" }, () 
     assert.equal(res.body.email, "Email already exists");
   });
 
-  test("wrong password is rejected", async () => {
-    const res = await call("POST", "/api/users/login", { body: { email: "alice@example.com", password: "wrong" } });
-    assert.equal(res.status, 400);
+  test("wrong password and unknown email get the same 401", async () => {
+    const wrongPassword = await call("POST", "/api/users/login", { body: { email: "alice@example.com", password: "wrong" } });
+    const unknownEmail = await call("POST", "/api/users/login", { body: { email: "nobody@example.com", password: "wrong" } });
+    assert.equal(wrongPassword.status, 401);
+    assert.equal(unknownEmail.status, 401);
+    assert.deepEqual(wrongPassword.body, unknownEmail.body);
+    assert.equal(wrongPassword.body.general, "Invalid email or password");
   });
 
   test("GET /api/users/current returns the token's user", async () => {

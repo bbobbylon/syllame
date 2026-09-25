@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import classnames from "classnames";
 
@@ -24,6 +24,9 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  /** Set by registerUser() right after a successful sign-up. */
+  const justRegistered = Boolean(location.state?.registered);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const loading = useSelector((state) => state.auth.loading);
   const errors = useSelector((state) => state.errors);
@@ -58,36 +61,37 @@ export default function Login() {
             </p>
           </div>
           <form noValidate onSubmit={onSubmit}>
-            {errors.general && <p className="red-text">{errors.general}</p>}
+            {justRegistered && !errors.general && (
+              <p className="green-text" role="status">
+                Account created. Log in to get started.
+              </p>
+            )}
+            {errors.general && (
+              <p className="red-text" role="alert">
+                {errors.general}
+              </p>
+            )}
             <div className="input-field col s12">
               <input
                 onChange={onChange}
                 value={form.email}
-                error={errors.email}
                 id="email"
                 type="email"
-                className={classnames("", { invalid: errors.email || errors.emailnotfound })}
+                className={classnames("", { invalid: errors.email || errors.general })}
               />
               <label htmlFor="email">Email</label>
-              <span className="red-text">
-                {errors.email}
-                {errors.emailnotfound}
-              </span>
+              <span className="red-text">{errors.email}</span>
             </div>
             <div className="input-field col s12">
               <input
                 onChange={onChange}
                 value={form.password}
-                error={errors.password}
                 id="password"
                 type="password"
-                className={classnames("", { invalid: errors.password || errors.passwordincorrect })}
+                className={classnames("", { invalid: errors.password || errors.general })}
               />
               <label htmlFor="password">Password</label>
-              <span className="red-text">
-                {errors.password}
-                {errors.passwordincorrect}
-              </span>
+              <span className="red-text">{errors.password}</span>
             </div>
             <div className="col s12" style={{ paddingLeft: "11.250px" }}>
               <button

@@ -6,7 +6,7 @@
  * predictable and easy to test (see `authReducers.test.js`).
  */
 
-import { SET_CURRENT_USER, USER_LOADING } from "../actions/types";
+import { SET_CURRENT_USER, USER_LOADING, USER_LOADING_DONE } from "../actions/types";
 
 /**
  * Returns true for `{}`, `null`, `undefined`, and `""`. Replaces the
@@ -47,6 +47,8 @@ export default function authReducer(state = initialState, action) {
       };
     case USER_LOADING:
       return { ...state, loading: true };
+    case USER_LOADING_DONE:
+      return { ...state, loading: false };
     default:
       return state;
   }

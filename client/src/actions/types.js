@@ -6,4 +6,5 @@
 
 export const GET_ERRORS = "GET_ERRORS";
 export const USER_LOADING = "USER_LOADING";
+export const USER_LOADING_DONE = "USER_LOADING_DONE";
 export const SET_CURRENT_USER = "SET_CURRENT_USER";

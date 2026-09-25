@@ -11,7 +11,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 import setAuthToken from "../utils/setAuthToken";
-import { GET_ERRORS, SET_CURRENT_USER, USER_LOADING } from "./types";
+import { GET_ERRORS, SET_CURRENT_USER, USER_LOADING, USER_LOADING_DONE } from "./types";
 
 /** localStorage key under which the "Bearer ..." token is kept. */
 export const TOKEN_KEY = "jwtToken";
@@ -36,14 +36,18 @@ function errorPayload(err) {
  * function from `useNavigate()` instead.
  *
  * @param {object} userData - firstname, lastname, email, password, password2.
- * @param {(to: string) => void} navigate - From `useNavigate()`.
+ * @param {(to: string, options?: object) => void} navigate - From `useNavigate()`.
  */
 export const registerUser = (userData, navigate) => async (dispatch) => {
+  dispatch({ type: USER_LOADING });
   try {
     await axios.post("/api/users/register", userData);
     dispatch({ type: GET_ERRORS, payload: {} });
-    navigate("/login");
+    // `state` rides along with the navigation (not the URL) so the login
+    // page can show a one-time "account created" notice.
+    navigate("/login", { state: { registered: true } });
   } catch (err) {
+    dispatch({ type: USER_LOADING_DONE });
     dispatch({ type: GET_ERRORS, payload: errorPayload(err) });
   }
 };
@@ -64,6 +68,7 @@ export const loginUser = (userData) => async (dispatch) => {
     dispatch({ type: GET_ERRORS, payload: {} });
     dispatch(setCurrentUser(jwtDecode(token)));
   } catch (err) {
+    dispatch({ type: USER_LOADING_DONE });
     dispatch({ type: GET_ERRORS, payload: errorPayload(err) });
   }
 };
