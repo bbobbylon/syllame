@@ -36,6 +36,8 @@ syllame/
 ├── test/                # Server tests (node --test)
 ├── .env.example         # Template for your local .env
 ├── render.yaml          # Render deployment blueprint
+├── Dockerfile           # Two-stage image: build client, run server
+├── compose.yml          # App + MongoDB for one-command local runs
 └── client/              # React app (Vite)
     ├── index.html
     ├── vite.config.js   # Dev proxy (/api -> :5000), build, and Vitest settings
@@ -115,6 +117,27 @@ MongoDB has no SQL files to import; the seed script is the equivalent. It has
 to be code rather than a data file because passwords are stored as bcrypt
 hashes, which a plain `mongoimport` cannot produce.
 
+### Docker (no local Node or MongoDB needed)
+
+If you have Docker Desktop, the whole stack runs with one command:
+
+```bash
+docker compose up --build                          # app on http://localhost:5000
+docker compose run --rm app node scripts/seed.js --force   # load the test accounts
+docker compose down                                # stop; add -v to delete the database
+```
+
+`compose.yml` starts a MongoDB container and the app container, wired
+together by name, so no `.env` file is needed. The `--force` on the seed
+command is required because the container runs with `NODE_ENV=production`.
+Change `JWT_SECRET` in `compose.yml` before exposing this to anyone else.
+
+The `Dockerfile` is a two-stage build: stage one compiles the React client,
+stage two copies only the server code and the compiled client onto a small
+Node image and runs as a non-root user. CI builds the image and boots the
+compose stack on every push, so the files are verified even though they are
+not needed for the Render deployment.
+
 ### Environment variables
 
 | Variable         | Required | Default       | Purpose                                              |
@@ -186,7 +209,7 @@ All responses are JSON. Validation failures return `400` with a
 | Method | Path                   | Auth   | Purpose                                   |
 | ------ | ---------------------- | ------ | ----------------------------------------- |
 | POST   | `/api/users/register`  | none   | Create an account. Returns the user (no hash). |
-| POST   | `/api/users/login`     | none   | Returns `{ token: "Bearer ..." }`           |
+| POST   | `/api/users/login`     | none   | Returns `{ token: "Bearer ..." }`; any failure is `401` with one generic message |
 | GET    | `/api/users/current`   | Bearer | The user the token belongs to             |
 | GET    | `/api/syllabi`         | Bearer | My syllabi, most recently updated first   |
 | POST   | `/api/syllabi`         | Bearer | Create a syllabus                         |
@@ -316,6 +339,8 @@ Do not set `PORT`; Render injects it and `config/env.js` reads it.
 - **Server job**: `npm ci`, `npm test`.
 - **Client job**: `npm ci`, `npm run lint`, `npm test`, `npm run build`, and
   uploads `client/dist` as a downloadable artifact.
+- **Docker job**: builds the image, starts the compose stack, checks
+  `/api/health`, and runs the seed script inside the container.
 
 Both jobs use the Node version in `.nvmrc`, so CI and your laptop agree.
 

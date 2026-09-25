@@ -65,3 +65,22 @@ jobs:
           name: client-dist
           path: client/dist
           retention-days: 7
+
+  docker:
+    name: Docker image + compose stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Build the image and start app + MongoDB exactly as a developer would.
+      - run: docker compose up --build --detach --wait --wait-timeout 120
+      # The app must answer on its health endpoint through the published port.
+      - run: |
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:5000/api/health; then exit 0; fi
+            sleep 3
+          done
+          echo "app never became healthy"; docker compose logs; exit 1
+      # Seeding inside the container proves scripts/ shipped and Mongo is reachable by name.
+      - run: docker compose run --rm app node scripts/seed.js --force
+      - if: always()
+        run: docker compose down --volumes

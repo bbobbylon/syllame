@@ -1,0 +1,36 @@
+# One-command local stack: the app plus a MongoDB it can reach by name.
+#
+#   docker compose up --build       # start; app on http://localhost:5000
+#   docker compose run --rm app node scripts/seed.js   # load test accounts
+#   docker compose down             # stop (add -v to delete the database too)
+#
+# Inside the compose network the database host is simply "mongo", so the app
+# needs no .env file here; everything it requires is set below.
+
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: "5000"
+      MONGO_URI: mongodb://mongo:27017/syllame
+      # Change this for anything beyond local experiments.
+      JWT_SECRET: local-compose-secret-change-me
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
