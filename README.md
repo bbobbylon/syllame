@@ -7,8 +7,8 @@ Authors: Robert C. Oliver Jr. and Colin J. McClintic
 
 | Layer    | Technology                                                        |
 | -------- | ----------------------------------------------------------------- |
-| Client   | React 19, React Router 7, Redux Toolkit, Vite 8, Materialize CSS  |
-| Server   | Node 22, Express 5, Passport (JWT), bcryptjs                      |
+| Client   | React 19, React Router 7, Redux Toolkit, Vite 8, Materialize 2 (bundled) |
+| Server   | Node 22, Express 5, Passport (JWT), bcryptjs, pdfkit, nodemailer  |
 | Database | MongoDB via Mongoose 9                                            |
 | Tests    | Node's built-in test runner (server), Vitest + Testing Library (client) |
 | CI       | GitHub Actions (`.github/workflows/ci.yml`)                       |
@@ -138,6 +138,15 @@ Node image and runs as a non-root user. CI builds the image and boots the
 compose stack on every push, so the files are verified even though they are
 not needed for the Render deployment.
 
+### Password reset emails
+
+"Forgot password?" on the login page emails a one-hour link. Locally, with
+`SMTP_URL` unset, the server prints the email to its terminal instead, so
+copy the link from there. To send real mail, set `SMTP_URL` to a nodemailer
+transport URL such as `smtps://user:pass@smtp.example.com:465` and `MAIL_FROM`
+to the sender. Set `APP_URL` in development (`http://localhost:3000`) so links
+point at the Vite dev server rather than the API port.
+
 ### Environment variables
 
 | Variable         | Required | Default       | Purpose                                              |
@@ -147,6 +156,9 @@ not needed for the Render deployment.
 | `JWT_EXPIRES_IN` | no       | `86400` (1 d) | Token lifetime in seconds                            |
 | `PORT`           | no       | `5000`        | API port. Hosting platforms set this for you         |
 | `NODE_ENV`       | no       | `development` | `production` makes Express serve `client/dist`       |
+| `APP_URL`        | no       | request origin | Base URL for links in emails; set to `http://localhost:3000` in dev |
+| `SMTP_URL`       | no       | unset         | nodemailer transport URL; unset prints emails to the console |
+| `MAIL_FROM`      | no       | `SyllaMe <no-reply@syllame.local>` | Sender address for outgoing mail |
 
 The server refuses to start, with a message naming the variable, if a required
 one is missing. That is deliberate: a misconfigured server that half-works is
@@ -166,6 +178,8 @@ Root (`/`):
 | `npm start`          | API in production mode (no reload). Serves `client/dist` when `NODE_ENV=production` |
 | `npm run build`      | Builds the client into `client/dist`                           |
 | `npm run seed`       | Loads test accounts and syllabi (see Seed test data)           |
+| `npm run format`     | Formats the whole repo with Prettier                           |
+| `npm run format:check` | Fails if any file is not Prettier-formatted (CI runs this)   |
 | `npm test`           | Server tests                                                   |
 | `npm run test:client`| Client tests                                                   |
 | `npm run test:all`   | Both                                                           |
@@ -210,17 +224,20 @@ All responses are JSON. Validation failures return `400` with a
 | ------ | ---------------------- | ------ | ----------------------------------------- |
 | POST   | `/api/users/register`  | none   | Create an account. Returns the user (no hash). |
 | POST   | `/api/users/login`     | none   | Returns `{ token: "Bearer ..." }`; any failure is `401` with one generic message |
+| POST   | `/api/users/forgot-password` | none | Emails a one-hour reset link; same `200` whether or not the email exists |
+| POST   | `/api/users/reset-password`  | none | `{ token, password, password2 }` sets a new password |
 | GET    | `/api/users/current`   | Bearer | The user the token belongs to             |
 | GET    | `/api/syllabi`         | Bearer | My syllabi, most recently updated first   |
 | POST   | `/api/syllabi`         | Bearer | Create a syllabus                         |
 | GET    | `/api/syllabi/:id`     | Bearer | One of my syllabi (`404` if not mine)     |
+| GET    | `/api/syllabi/:id/pdf` | Bearer | The syllabus as a PDF download (pdfkit)   |
 | PUT    | `/api/syllabi/:id`     | Bearer | Update one of my syllabi                  |
 | DELETE | `/api/syllabi/:id`     | Bearer | Delete one of my syllabi (`204`)          |
 | GET    | `/api/health`          | none   | `{ status: "ok" }` for uptime checks      |
 
 Send the token as `Authorization: Bearer <token>`; the client does this
-automatically after login. Login and register are rate limited to 20 attempts
-per IP per 15 minutes (`429` afterwards).
+automatically after login. Login, register and the two password-reset routes
+are rate limited to 20 attempts per IP per 15 minutes (`429` afterwards).
 
 ### Pages
 
@@ -228,10 +245,11 @@ per IP per 15 minutes (`429` afterwards).
 | -------------------- | ---------------------------------------------------- |
 | `/`                  | Landing page                                         |
 | `/register`, `/login`| Auth forms                                           |
+| `/forgot-password`, `/reset-password/:token` | Password reset by emailed link |
 | `/dashboard`         | Greeting, quick actions, recently updated syllabi    |
 | `/syllabi`           | My syllabi with edit / delete                        |
 | `/syllabi/new`       | Create form                                          |
-| `/syllabi/:id`       | Print-friendly view; "Print / PDF" uses the browser  |
+| `/syllabi/:id`       | Print-friendly view; Download PDF (server-rendered) or Print |
 | `/syllabi/:id/edit`  | Edit form                                            |
 
 The 1.0 URLs `/createSyllabus` and `/viewSyllabus` redirect to the new pages.
@@ -336,7 +354,8 @@ Do not set `PORT`; Render injects it and `config/env.js` reads it.
 
 `.github/workflows/ci.yml` runs on every push and pull request:
 
-- **Server job**: `npm ci`, `npm test`.
+- **Server job**: `npm ci`, `npm run format:check`, `npm test` (with a MongoDB
+  service container so the database-backed suites run).
 - **Client job**: `npm ci`, `npm run lint`, `npm test`, `npm run build`, and
   uploads `client/dist` as a downloadable artifact.
 - **Docker job**: builds the image, starts the compose stack, checks
@@ -364,7 +383,11 @@ alternatives that were rejected:
 | Auth libs | passport 0.4, jsonwebtoken 8, bcryptjs 2 | 0.7, 9, 3 | No API changes for how this app uses them; the majors fix security issues. |
 | Secrets | Hard-coded in `config/keys.js` | Environment variables via `dotenv` | See the warning at the top of this file. |
 | Hardening | none | `helmet` (CSP and friends), `express-rate-limit` on auth routes | The CSP explicitly allows the Materialize CDN and Google Fonts that `index.html` loads; everything else is same-origin only. |
-| Syllabi | Form posted to a route that did not exist | `Syllabus` model + owner-scoped CRUD API + list / edit / print pages | The app's actual purpose now works end to end. |
+| Syllabi | Form posted to a route that did not exist | `Syllabus` model + owner-scoped CRUD API + list / edit / print pages + PDF export | The app's actual purpose now works end to end. pdfkit streams the PDF; a headless browser would need far more memory than a free-tier host offers. |
+| UI framework delivery | Materialize 1.0 (2018) + icon font from CDNs at runtime | `@materializecss/materialize` 2.x (maintained fork) and `material-icons`, bundled by Vite | Works offline, no third-party script at runtime, and the CSP is now strictly same-origin. 2.x changed the navbar and input defaults, so the app's own CSS owns the navbar layout and restores input width. |
+| State | Classic action types + switch reducers | Redux Toolkit `createSlice` | Generates action creators and reducer from one object; Immer lets reducers be written as plain assignments while staying immutable. The thunks are unchanged. |
+| Passwords | No recovery | Emailed one-hour reset link (`nodemailer`); console output when SMTP is not configured | Standard token-hash pattern: only a SHA-256 of the token is stored. |
+| Formatting | none | Prettier, checked in CI | One style, no debates in review. |
 | Tests | One CRA placeholder that could never pass | 12 server + 14 client tests | The old test looked for "learn react" text that did not exist. |
 | Repo | `node_modules` committed (46,833 files) | Ignored | Dependencies are reproducible from the lockfiles; committing them bloats every clone and diff. |
 

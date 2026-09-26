@@ -39,6 +39,7 @@ jobs:
       # --ignore-scripts skips the root `postinstall` that installs the client;
       # the client job handles that separately.
       - run: npm ci --ignore-scripts
+      - run: npm run format:check
       - run: npm test
 
   client:
