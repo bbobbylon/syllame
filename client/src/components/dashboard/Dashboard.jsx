@@ -46,12 +46,18 @@ export default function Dashboard() {
 
       <div className="row">
         <div className="col s12 m6">
-          <Link to="/syllabi/new" className="btn btn-large waves-effect waves-light hoverable blue accent-3 full-width-btn">
+          <Link
+            to="/syllabi/new"
+            className="btn btn-large waves-effect waves-light hoverable blue accent-3 full-width-btn"
+          >
             <i className="material-icons left">add</i>Create Syllabus
           </Link>
         </div>
         <div className="col s12 m6">
-          <Link to="/syllabi" className="btn btn-large waves-effect waves-light hoverable blue accent-3 full-width-btn">
+          <Link
+            to="/syllabi"
+            className="btn btn-large waves-effect waves-light hoverable blue accent-3 full-width-btn"
+          >
             <i className="material-icons left">list</i>View Syllabi
           </Link>
         </div>

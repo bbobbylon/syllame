@@ -58,6 +58,28 @@ export async function deleteSyllabus(id) {
 }
 
 /**
+ * Downloads the PDF for a syllabus. A plain `<a href>` cannot send the
+ * Authorization header, so the file is fetched with axios as a blob and
+ * handed to the browser through a temporary object URL.
+ *
+ * @param {string} id
+ * @param {string} [fallbackName="syllabus.pdf"] - Used if the server sends no filename.
+ * @returns {Promise<void>}
+ */
+export async function downloadSyllabusPdf(id, fallbackName = "syllabus.pdf") {
+  const res = await axios.get(`${BASE}/${id}/pdf`, { responseType: "blob" });
+  const match = /filename="([^"]+)"/.exec(res.headers["content-disposition"] || "");
+  const url = URL.createObjectURL(res.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = match ? match[1] : fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Turns an axios error into something a component can show.
  *
  * @param {unknown} err

@@ -15,6 +15,8 @@ import Landing from "./components/layout/Landing";
 import NotFound from "./components/layout/NotFound";
 import Register from "./components/auth/Register";
 import Login from "./components/auth/Login";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import ResetPassword from "./components/auth/ResetPassword";
 import PrivateRoute from "./components/privateroute/PrivateRoute";
 import Dashboard from "./components/dashboard/Dashboard";
 import SyllabusList from "./components/syllabus/SyllabusList";
@@ -36,6 +38,8 @@ export function AppRoutes() {
           <Route path="/" element={<Landing />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route element={<PrivateRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/syllabi" element={<SyllabusList />} />

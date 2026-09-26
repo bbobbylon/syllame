@@ -8,8 +8,8 @@ import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 import { render } from "@testing-library/react";
 
-import authReducer from "../reducers/authReducers";
-import errorReducer from "../reducers/errorReducers";
+import authReducer from "../store/authSlice";
+import errorsReducer from "../store/errorsSlice";
 
 /**
  * @param {import("react").ReactElement} ui - Element under test.
@@ -20,7 +20,7 @@ import errorReducer from "../reducers/errorReducers";
  */
 export function renderWithProviders(ui, { preloadedState, initialEntries = ["/"] } = {}) {
   const store = configureStore({
-    reducer: { auth: authReducer, errors: errorReducer },
+    reducer: { auth: authReducer, errors: errorsReducer },
     preloadedState
   });
   const result = render(

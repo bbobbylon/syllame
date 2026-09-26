@@ -27,6 +27,8 @@ export default function Login() {
   const location = useLocation();
   /** Set by registerUser() right after a successful sign-up. */
   const justRegistered = Boolean(location.state?.registered);
+  /** Set by ResetPassword after a successful reset. */
+  const passwordReset = Boolean(location.state?.passwordReset);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const loading = useSelector((state) => state.auth.loading);
   const errors = useSelector((state) => state.errors);
@@ -66,6 +68,11 @@ export default function Login() {
                 Account created. Log in to get started.
               </p>
             )}
+            {passwordReset && !errors.general && (
+              <p className="green-text" role="status">
+                Password updated. Log in with your new password.
+              </p>
+            )}
             {errors.general && (
               <p className="red-text" role="alert">
                 {errors.general}
@@ -77,6 +84,7 @@ export default function Login() {
                 value={form.email}
                 id="email"
                 type="email"
+                placeholder=" "
                 className={classnames("", { invalid: errors.email || errors.general })}
               />
               <label htmlFor="email">Email</label>
@@ -88,10 +96,14 @@ export default function Login() {
                 value={form.password}
                 id="password"
                 type="password"
+                placeholder=" "
                 className={classnames("", { invalid: errors.password || errors.general })}
               />
               <label htmlFor="password">Password</label>
               <span className="red-text">{errors.password}</span>
+              <Link to="/forgot-password" className="forgot-link">
+                Forgot password?
+              </Link>
             </div>
             <div className="col s12" style={{ paddingLeft: "11.250px" }}>
               <button

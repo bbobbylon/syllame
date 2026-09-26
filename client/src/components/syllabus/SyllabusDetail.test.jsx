@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Routes, Route } from "react-router-dom";
 
 import SyllabusDetail from "./SyllabusDetail";
@@ -8,7 +9,7 @@ import * as api from "../../api/syllabi";
 
 vi.mock("../../api/syllabi", async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, getSyllabus: vi.fn() };
+  return { ...actual, getSyllabus: vi.fn(), downloadSyllabusPdf: vi.fn() };
 });
 
 describe("SyllabusDetail", () => {
@@ -44,5 +45,19 @@ describe("SyllabusDetail", () => {
       { initialEntries: ["/syllabi/zzz"] }
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(/no longer exists/i);
+  });
+
+  test("Download PDF asks the API for the file", async () => {
+    api.getSyllabus.mockResolvedValueOnce({ _id: "abc", title: "Databases 101" });
+    api.downloadSyllabusPdf.mockResolvedValueOnce();
+    renderWithProviders(
+      <Routes>
+        <Route path="/syllabi/:id" element={<SyllabusDetail />} />
+      </Routes>,
+      { initialEntries: ["/syllabi/abc"] }
+    );
+    await screen.findByRole("heading", { name: "Databases 101" });
+    await userEvent.click(screen.getByRole("button", { name: /download pdf/i }));
+    expect(api.downloadSyllabusPdf).toHaveBeenCalledWith("abc");
   });
 });

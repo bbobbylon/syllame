@@ -12,7 +12,13 @@ vi.mock("../../api/syllabi", async (importOriginal) => {
 });
 
 const two = [
-  { _id: "1", title: "Databases 101", courseNumber: "CS 340", instructorName: "Ada", updatedAt: "2026-09-01T00:00:00Z" },
+  {
+    _id: "1",
+    title: "Databases 101",
+    courseNumber: "CS 340",
+    instructorName: "Ada",
+    updatedAt: "2026-09-01T00:00:00Z"
+  },
   { _id: "2", title: "Compilers", updatedAt: "2026-08-01T00:00:00Z" }
 ];
 

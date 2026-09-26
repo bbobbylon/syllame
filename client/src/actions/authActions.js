@@ -1,17 +1,21 @@
 /**
- * Auth action creators.
+ * Auth thunks: the async flows (register, login, restore session) that talk
+ * to the API and then dispatch plain slice actions.
  *
- * The async ones are "thunks": instead of returning an action object they
- * return a function `(dispatch) => ...`. The thunk middleware (included by
- * Redux Toolkit's `configureStore`) calls that function, which lets us await
- * an HTTP request and dispatch when it finishes.
+ * A thunk returns a function `(dispatch) => ...` instead of an action
+ * object. The thunk middleware (included by Redux Toolkit's configureStore)
+ * calls it, which lets us await an HTTP request and dispatch afterwards.
  */
 
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 import setAuthToken from "../utils/setAuthToken";
-import { GET_ERRORS, SET_CURRENT_USER, USER_LOADING, USER_LOADING_DONE } from "./types";
+import { setCurrentUser, userLoading, userLoadingDone } from "../store/authSlice";
+import { setErrors, clearErrors } from "../store/errorsSlice";
+
+// Re-exported so components keep importing everything auth-related from here.
+export { setCurrentUser };
 
 /** localStorage key under which the "Bearer ..." token is kept. */
 export const TOKEN_KEY = "jwtToken";
@@ -32,23 +36,21 @@ function errorPayload(err) {
 /**
  * Registers a new account, then sends the user to the login page.
  *
- * React Router 7 has no `history` prop; components pass the `navigate`
- * function from `useNavigate()` instead.
- *
  * @param {object} userData - firstname, lastname, email, password, password2.
  * @param {(to: string, options?: object) => void} navigate - From `useNavigate()`.
  */
 export const registerUser = (userData, navigate) => async (dispatch) => {
-  dispatch({ type: USER_LOADING });
+  dispatch(userLoading());
   try {
     await axios.post("/api/users/register", userData);
-    dispatch({ type: GET_ERRORS, payload: {} });
+    dispatch(clearErrors());
+    dispatch(userLoadingDone());
     // `state` rides along with the navigation (not the URL) so the login
     // page can show a one-time "account created" notice.
     navigate("/login", { state: { registered: true } });
   } catch (err) {
-    dispatch({ type: USER_LOADING_DONE });
-    dispatch({ type: GET_ERRORS, payload: errorPayload(err) });
+    dispatch(userLoadingDone());
+    dispatch(setErrors(errorPayload(err)));
   }
 };
 
@@ -59,29 +61,19 @@ export const registerUser = (userData, navigate) => async (dispatch) => {
  * @param {{ email: string, password: string }} userData
  */
 export const loginUser = (userData) => async (dispatch) => {
-  dispatch({ type: USER_LOADING });
+  dispatch(userLoading());
   try {
     const res = await axios.post("/api/users/login", userData);
     const { token } = res.data;
     localStorage.setItem(TOKEN_KEY, token);
     setAuthToken(token);
-    dispatch({ type: GET_ERRORS, payload: {} });
+    dispatch(clearErrors());
     dispatch(setCurrentUser(jwtDecode(token)));
   } catch (err) {
-    dispatch({ type: USER_LOADING_DONE });
-    dispatch({ type: GET_ERRORS, payload: errorPayload(err) });
+    dispatch(userLoadingDone());
+    dispatch(setErrors(errorPayload(err)));
   }
 };
-
-/**
- * Plain action: sets (or clears, with `{}`) the logged-in user.
- *
- * @param {object} decoded - Decoded JWT payload, or `{}` to log out.
- */
-export const setCurrentUser = (decoded) => ({
-  type: SET_CURRENT_USER,
-  payload: decoded
-});
 
 /** Clears the token everywhere and resets auth state. */
 export const logoutUser = () => (dispatch) => {

@@ -48,9 +48,7 @@ export const SECTIONS = [
 export const FIELDS = SECTIONS.flatMap((s) => s.fields);
 
 /** A blank form: every text field "" and creditHours "3". */
-export const EMPTY_SYLLABUS = Object.fromEntries(
-  FIELDS.map((f) => [f.name, f.type === "select" ? "3" : ""])
-);
+export const EMPTY_SYLLABUS = Object.fromEntries(FIELDS.map((f) => [f.name, f.type === "select" ? "3" : ""]));
 
 /**
  * Picks the form fields out of a server document, as strings, so a fetched

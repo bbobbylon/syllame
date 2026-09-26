@@ -99,7 +99,11 @@ export default function SyllabusList() {
                 </div>
               </div>
               <div className="syllabus-actions">
-                <Link to={`/syllabi/${s._id}/edit`} className="btn-flat waves-effect" aria-label={`Edit ${s.title}`}>
+                <Link
+                  to={`/syllabi/${s._id}/edit`}
+                  className="btn-flat waves-effect"
+                  aria-label={`Edit ${s.title}`}
+                >
                   <i className="material-icons">edit</i>
                 </Link>
                 <button

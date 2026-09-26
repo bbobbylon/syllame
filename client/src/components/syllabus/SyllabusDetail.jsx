@@ -1,17 +1,17 @@
 /**
  * Read-only, print-friendly view of one syllabus.
  *
- * "Export to PDF" is the browser's own print dialog: `index.css` has an
- * `@media print` block that hides the navbar and buttons, so "Save as PDF"
- * produces a clean document. That covers the common need without a PDF
- * library on the server.
+ * Two export paths: "Download PDF" asks the server for a pdfkit-rendered
+ * file (consistent layout on every device), and "Print" opens the browser's
+ * print dialog, where `index.css`'s `@media print` block hides the navbar
+ * and buttons.
  */
 
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { SECTIONS } from "./syllabusFields";
-import { getSyllabus, describeError } from "../../api/syllabi";
+import { getSyllabus, downloadSyllabusPdf, describeError } from "../../api/syllabi";
 
 /**
  * @returns {JSX.Element}
@@ -20,6 +20,20 @@ export default function SyllabusDetail() {
   const { id } = useParams();
   const [syllabus, setSyllabus] = useState(null);
   const [message, setMessage] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+
+  const onDownload = async () => {
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      await downloadSyllabusPdf(id);
+    } catch (err) {
+      setDownloadError(describeError(err).message);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -60,11 +74,27 @@ export default function SyllabusDetail() {
             <Link to={`/syllabi/${id}/edit`} className="btn waves-effect waves-light blue accent-3">
               <i className="material-icons left">edit</i>Edit
             </Link>
-            <button type="button" className="btn waves-effect waves-light grey darken-1" onClick={() => window.print()}>
-              <i className="material-icons left">print</i>Print / PDF
+            <button
+              type="button"
+              className="btn waves-effect waves-light grey darken-1"
+              onClick={onDownload}
+              disabled={downloading}
+            >
+              <i className="material-icons left">download</i>
+              {downloading ? "Preparing..." : "Download PDF"}
+            </button>
+            <button type="button" className="btn-flat waves-effect" onClick={() => window.print()}>
+              <i className="material-icons left">print</i>Print
             </button>
           </span>
         </div>
+        {downloadError && (
+          <div className="col s12">
+            <p className="red-text" role="alert">
+              {downloadError}
+            </p>
+          </div>
+        )}
       </div>
 
       <header className="syllabus-header">
@@ -78,7 +108,9 @@ export default function SyllabusDetail() {
 
       {SECTIONS.map((section) => {
         // Skip fields that are empty and the whole section if nothing is filled in.
-        const rows = section.fields.filter((f) => f.name !== "title" && String(syllabus[f.name] ?? "").trim() !== "");
+        const rows = section.fields.filter(
+          (f) => f.name !== "title" && String(syllabus[f.name] ?? "").trim() !== ""
+        );
         if (rows.length === 0) return null;
         return (
           <section key={section.title} className="syllabus-print-section">

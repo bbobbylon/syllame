@@ -1,25 +1,20 @@
 /**
  * Redux store.
  *
- * Redux Toolkit's `configureStore` replaces the hand-rolled
- * `createStore(rootReducer, initialState, compose(applyMiddleware(thunk), devtools))`
- * from the original code. It does all of that for you: combines the reducers,
- * adds the thunk middleware (so action creators can be async functions), and
- * wires up the Redux DevTools browser extension automatically.
- *
- * Plain `createStore` from the `redux` package still exists but is marked
- * deprecated in Redux 5, which is why we switched.
+ * `configureStore` combines the slice reducers, adds the thunk middleware
+ * (so action creators can be async functions), and wires up the Redux
+ * DevTools browser extension automatically.
  */
 
 import { configureStore } from "@reduxjs/toolkit";
 
-import authReducer from "./reducers/authReducers";
-import errorReducer from "./reducers/errorReducers";
+import authReducer from "./store/authSlice";
+import errorsReducer from "./store/errorsSlice";
 
 const store = configureStore({
   reducer: {
     auth: authReducer,
-    errors: errorReducer
+    errors: errorsReducer
   }
 });
 

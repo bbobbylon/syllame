@@ -37,7 +37,9 @@ function Field({ field, value, error, onChange }) {
       </select>
     );
   } else if (field.type === "textarea") {
-    control = <textarea {...common} className={classnames("materialize-textarea", { invalid: error })} rows={3} />;
+    control = (
+      <textarea {...common} className={classnames("materialize-textarea", { invalid: error })} rows={3} />
+    );
   } else {
     control = <input {...common} type={field.type || "text"} />;
   }
@@ -49,7 +51,7 @@ function Field({ field, value, error, onChange }) {
       </label>
       {control}
       {error && (
-        <span id={`${field.name}-error`} className="red-text helper-text">
+        <span id={`${field.name}-error`} className="red-text field-error">
           {error}
         </span>
       )}
@@ -120,7 +122,9 @@ export default function SyllabusForm() {
         <b>{isEdit ? "Edit Syllabus" : "Create Syllabus"}</b>
       </h4>
       <p className="flow-text grey-text text-darken-1 center-align">
-        {isEdit ? "Update the details below." : "Fill out the information below to start making your syllabus."}
+        {isEdit
+          ? "Update the details below."
+          : "Fill out the information below to start making your syllabus."}
       </p>
 
       <form onSubmit={onSubmit} noValidate>

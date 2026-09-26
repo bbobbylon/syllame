@@ -18,6 +18,7 @@ function Field({ id, label, type = "text", value, error, onChange }) {
         value={value}
         id={id}
         type={type}
+        placeholder=" "
         className={classnames("", { invalid: error })}
       />
       <label htmlFor={id}>{label}</label>
@@ -74,11 +75,44 @@ export default function Register() {
           </div>
           <form noValidate onSubmit={onSubmit}>
             {errors.general && <p className="red-text">{errors.general}</p>}
-            <Field id="firstname" label="First name" value={form.firstname} error={errors.firstname} onChange={onChange} />
-            <Field id="lastname" label="Last name" value={form.lastname} error={errors.lastname} onChange={onChange} />
-            <Field id="email" label="Email" type="email" value={form.email} error={errors.email} onChange={onChange} />
-            <Field id="password" label="Password" type="password" value={form.password} error={errors.password} onChange={onChange} />
-            <Field id="password2" label="Confirm Password" type="password" value={form.password2} error={errors.password2} onChange={onChange} />
+            <Field
+              id="firstname"
+              label="First name"
+              value={form.firstname}
+              error={errors.firstname}
+              onChange={onChange}
+            />
+            <Field
+              id="lastname"
+              label="Last name"
+              value={form.lastname}
+              error={errors.lastname}
+              onChange={onChange}
+            />
+            <Field
+              id="email"
+              label="Email"
+              type="email"
+              value={form.email}
+              error={errors.email}
+              onChange={onChange}
+            />
+            <Field
+              id="password"
+              label="Password"
+              type="password"
+              value={form.password}
+              error={errors.password}
+              onChange={onChange}
+            />
+            <Field
+              id="password2"
+              label="Confirm Password"
+              type="password"
+              value={form.password2}
+              error={errors.password2}
+              onChange={onChange}
+            />
             <div className="col s12" style={{ paddingLeft: "11.250px" }}>
               <button
                 style={{
