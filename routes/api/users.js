@@ -4,13 +4,16 @@
  * Mounted at `/api/users` by `app.js`, so the full paths are:
  *   POST /api/users/register
  *   POST /api/users/login
- *   GET  /api/users/current   (requires `Authorization: Bearer <token>`)
+ *   POST /api/users/forgot-password   email a reset link
+ *   POST /api/users/reset-password    set a new password with that link's token
+ *   GET  /api/users/current           (requires `Authorization: Bearer <token>`)
  *
  * All handlers are `async`. Express 5 forwards a rejected promise from an
  * async handler to the error middleware automatically, which is why there is
  * no try/catch boilerplate here (Express 4 silently dropped those errors).
  */
 
+const crypto = require("node:crypto");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -19,7 +22,9 @@ const passport = require("passport");
 const env = require("../../config/env");
 const validateRegisterInput = require("../../validation/register");
 const validateLoginInput = require("../../validation/login");
+const validateResetPasswordInput = require("../../validation/resetPassword");
 const User = require("../../models/user");
+const { sendMail } = require("../../config/mailer");
 
 const router = express.Router();
 
@@ -31,6 +36,33 @@ const INVALID_CREDENTIALS = { general: "Invalid email or password" };
 
 /** A real bcrypt hash of a random string; used to equalize timing when the email is unknown. */
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", SALT_ROUNDS);
+
+/** How long a password-reset link stays valid. */
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+
+/** Same reply whether or not the email exists, so accounts cannot be enumerated. */
+const FORGOT_REPLY = { message: "If that email is registered, a reset link has been sent." };
+
+/**
+ * SHA-256 hex digest of a reset token. The database stores only this.
+ *
+ * @param {string} token
+ * @returns {string}
+ */
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Base URL for links in emails: APP_URL when configured, else the origin of
+ * the current request (correct in production where Express serves the app).
+ *
+ * @param {import("express").Request} req
+ * @returns {string}
+ */
+function appUrlFor(req) {
+  return env.appUrl || `${req.protocol}://${req.get("host")}`;
+}
 
 /**
  * @route  POST /api/users/register
@@ -112,6 +144,72 @@ router.post("/login", async (req, res) => {
 });
 
 /**
+ * @route  POST /api/users/forgot-password
+ * @desc   Email a one-hour password-reset link.
+ * @access Public
+ *
+ * Always answers 200 with the same message. Only when the email belongs to
+ * an account is a token generated: 32 random bytes, sent to the user in the
+ * link, stored hashed with an expiry. Requesting again replaces the token.
+ */
+router.post("/forgot-password", async (req, res) => {
+  const email = String(req.body.email || "")
+    .toLowerCase()
+    .trim();
+  if (!email) {
+    return res.status(400).json({ email: "Email field is required" });
+  }
+
+  const user = await User.findOne({ email });
+  if (user) {
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordTokenHash = hashToken(token);
+    user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    await user.save();
+
+    const link = `${appUrlFor(req)}/reset-password/${token}`;
+    await sendMail({
+      to: user.email,
+      subject: "Reset your SyllaMe password",
+      text:
+        `Hi ${user.firstname},\n\n` +
+        `Someone asked to reset the password for this SyllaMe account. ` +
+        `If that was you, open the link below within one hour:\n\n${link}\n\n` +
+        `If you did not ask for this, ignore this email; your password will not change.`
+    });
+  }
+
+  return res.json(FORGOT_REPLY);
+});
+
+/**
+ * @route  POST /api/users/reset-password
+ * @desc   Set a new password using a token from the emailed link.
+ * @access Public
+ */
+router.post("/reset-password", async (req, res) => {
+  const { errors, isValid } = validateResetPasswordInput(req.body);
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
+  const user = await User.findOne({
+    resetPasswordTokenHash: hashToken(String(req.body.token)),
+    resetPasswordExpires: { $gt: new Date() }
+  });
+  if (!user) {
+    return res.status(400).json({ token: "This reset link is invalid or has expired" });
+  }
+
+  user.password = await bcrypt.hash(req.body.password, SALT_ROUNDS);
+  user.resetPasswordTokenHash = null;
+  user.resetPasswordExpires = null;
+  await user.save();
+
+  return res.json({ success: true });
+});
+
+/**
  * @route  GET /api/users/current
  * @desc   Return the user that the presented JWT belongs to.
  * @access Private
@@ -120,12 +218,8 @@ router.post("/login", async (req, res) => {
  * `config/passport.js`. On success `req.user` is the Mongoose document; on
  * failure Passport responds 401 before this handler runs.
  */
-router.get(
-  "/current",
-  passport.authenticate("jwt", { session: false }),
-  (req, res) => {
-    res.json(req.user);
-  }
-);
+router.get("/current", passport.authenticate("jwt", { session: false }), (req, res) => {
+  res.json(req.user);
+});
 
 module.exports = router;

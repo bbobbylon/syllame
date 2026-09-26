@@ -90,15 +90,25 @@ describe("database-backed API", { skip: !MONGO_URI && "MONGO_URI not set" }, () 
 
   test("duplicate email is rejected, case-insensitively", async () => {
     const res = await call("POST", "/api/users/register", {
-      body: { firstname: "A", lastname: "B", email: "ALICE@example.com", password: "secret123", password2: "secret123" }
+      body: {
+        firstname: "A",
+        lastname: "B",
+        email: "ALICE@example.com",
+        password: "secret123",
+        password2: "secret123"
+      }
     });
     assert.equal(res.status, 400);
     assert.equal(res.body.email, "Email already exists");
   });
 
   test("wrong password and unknown email get the same 401", async () => {
-    const wrongPassword = await call("POST", "/api/users/login", { body: { email: "alice@example.com", password: "wrong" } });
-    const unknownEmail = await call("POST", "/api/users/login", { body: { email: "nobody@example.com", password: "wrong" } });
+    const wrongPassword = await call("POST", "/api/users/login", {
+      body: { email: "alice@example.com", password: "wrong" }
+    });
+    const unknownEmail = await call("POST", "/api/users/login", {
+      body: { email: "nobody@example.com", password: "wrong" }
+    });
     assert.equal(wrongPassword.status, 401);
     assert.equal(unknownEmail.status, 401);
     assert.deepEqual(wrongPassword.body, unknownEmail.body);
@@ -143,8 +153,28 @@ describe("database-backed API", { skip: !MONGO_URI && "MONGO_URI not set" }, () 
   test("another user cannot see, edit or delete it", async () => {
     assert.equal((await call("GET", "/api/syllabi", { token: bob })).body.length, 0);
     assert.equal((await call("GET", `/api/syllabi/${syllabusId}`, { token: bob })).status, 404);
-    assert.equal((await call("PUT", `/api/syllabi/${syllabusId}`, { token: bob, body: { title: "hacked" } })).status, 404);
+    assert.equal(
+      (await call("PUT", `/api/syllabi/${syllabusId}`, { token: bob, body: { title: "hacked" } })).status,
+      404
+    );
     assert.equal((await call("DELETE", `/api/syllabi/${syllabusId}`, { token: bob })).status, 404);
+  });
+
+  test("PDF export streams a PDF for the owner and 404s for others", async () => {
+    const mine = await fetch(`${baseUrl}/api/syllabi/${syllabusId}/pdf`, {
+      headers: { authorization: alice }
+    });
+    assert.equal(mine.status, 200);
+    assert.equal(mine.headers.get("content-type"), "application/pdf");
+    assert.match(mine.headers.get("content-disposition"), /attachment; filename="Databases-101\.pdf"/);
+    const bytes = Buffer.from(await mine.arrayBuffer());
+    assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
+    assert.ok(bytes.length > 1000, "PDF looks empty");
+
+    const theirs = await fetch(`${baseUrl}/api/syllabi/${syllabusId}/pdf`, {
+      headers: { authorization: bob }
+    });
+    assert.equal(theirs.status, 404);
   });
 
   test("update then delete", async () => {

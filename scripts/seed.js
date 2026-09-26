@@ -51,7 +51,8 @@ const SEED_SYLLABI = {
         "Database System Concepts, 7th ed. (Silberschatz, Korth, Sudarshan)\nA laptop able to run PostgreSQL and MongoDB",
       courseSchedule:
         "Week 1: Course overview, relational model\nWeek 2-3: SQL fundamentals\nWeek 4-5: Schema design and normalization\nWeek 6: Midterm\nWeek 7-9: Transactions and indexing\nWeek 10-12: NoSQL and MongoDB\nWeek 13-14: Team project\nWeek 15: Final exam",
-      gradingScale: "A 90-100\nB 80-89\nC 70-79\nD 60-69\nF below 60\n\nHomework 30%, Midterm 20%, Project 25%, Final 25%",
+      gradingScale:
+        "A 90-100\nB 80-89\nC 70-79\nD 60-69\nF below 60\n\nHomework 30%, Midterm 20%, Project 25%, Final 25%",
       extraInfo: "Late work loses 10% per day. Academic integrity policy applies to all submissions."
     },
     {
@@ -66,7 +67,8 @@ const SEED_SYLLABI = {
       meetingTimes: "Tue/Thu 11:00 AM-12:15 PM",
       meetingLocation: "Engineering 105 (lab)",
       courseMaterials: "No textbook. Readings are linked from the course site.",
-      courseSchedule: "Weeks 1-4: JavaScript and Node\nWeeks 5-8: Express and MongoDB\nWeeks 9-12: React\nWeeks 13-15: Capstone",
+      courseSchedule:
+        "Weeks 1-4: JavaScript and Node\nWeeks 5-8: Express and MongoDB\nWeeks 9-12: React\nWeeks 13-15: Capstone",
       gradingScale: "Labs 40%, Capstone 40%, Participation 20%"
     },
     {
@@ -148,7 +150,9 @@ async function main() {
   console.log(`Seeding ${mongoose.connection.name} ...`);
   const counts = await seed({ wipe: args.has("--wipe") });
   console.log(`Done: ${counts.users} users, ${counts.syllabi} syllabi.`);
-  console.log("Start the app (npm run dev), open http://localhost:3000/login and use one of the accounts above.");
+  console.log(
+    "Start the app (npm run dev), open http://localhost:3000/login and use one of the accounts above."
+  );
   await mongoose.disconnect();
 }
 

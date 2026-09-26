@@ -65,5 +65,15 @@ module.exports = {
   /** JWT lifetime in seconds. Defaults to one day. */
   jwtExpiresIn: optionalInt("JWT_EXPIRES_IN", 86400),
   /** TCP port for the HTTP server. Hosting providers inject PORT automatically. */
-  port: optionalInt("PORT", 5000)
+  port: optionalInt("PORT", 5000),
+  /**
+   * Public URL of the web app, used to build links in emails. Optional: when
+   * unset the server falls back to the origin of the incoming request, which
+   * is right in production but wrong behind the Vite dev proxy.
+   */
+  appUrl: (process.env.APP_URL || "").replace(/\/+$/, "") || null,
+  /** nodemailer transport URL. Optional; without it emails are printed to the console. */
+  smtpUrl: process.env.SMTP_URL || null,
+  /** Sender address for outgoing mail. */
+  mailFrom: process.env.MAIL_FROM || "SyllaMe <no-reply@syllame.local>"
 };

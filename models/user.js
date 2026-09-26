@@ -28,6 +28,13 @@ const userSchema = new mongoose.Schema(
     },
     /** bcrypt hash of the password. The plain-text password is never stored. */
     password: { type: String, required: true },
+    /**
+     * SHA-256 of the current password-reset token, or null. Only the hash is
+     * stored so a database leak does not hand out working reset links.
+     */
+    resetPasswordTokenHash: { type: String, default: null },
+    /** When the reset token stops being valid. */
+    resetPasswordExpires: { type: Date, default: null },
     date: { type: Date, default: Date.now }
   },
   {
@@ -39,6 +46,8 @@ const userSchema = new mongoose.Schema(
     toJSON: {
       transform(_doc, ret) {
         delete ret.password;
+        delete ret.resetPasswordTokenHash;
+        delete ret.resetPasswordExpires;
         delete ret.__v;
         return ret;
       }

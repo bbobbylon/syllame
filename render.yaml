@@ -14,7 +14,7 @@ services:
   - type: web
     name: syllame
     runtime: node
-    plan: free            # Free tier sleeps after ~15 min idle; first request after that is slow.
+    plan: free # Free tier sleeps after ~15 min idle; first request after that is slow.
     # branch: master      # Uncomment to deploy from a branch other than the repo default.
 
     # `npm install` triggers the root postinstall, which installs the client
@@ -44,3 +44,9 @@ services:
       # Optional: token lifetime in seconds (default in code is 1 day).
       - key: JWT_EXPIRES_IN
         value: "86400"
+      # Optional: outgoing mail for password resets. Without SMTP_URL the
+      # server prints reset emails to its log instead of sending them.
+      # - key: SMTP_URL
+      #   sync: false
+      # - key: MAIL_FROM
+      #   value: SyllaMe <no-reply@yourdomain.example>

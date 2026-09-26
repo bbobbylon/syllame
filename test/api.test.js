@@ -112,11 +112,10 @@ describe("hardening", () => {
     assert.equal(res.headers.get("x-frame-options"), "DENY");
   });
 
-  test("CSP allows the CDNs index.html depends on", async () => {
+  test("CSP is same-origin only (no CDN hosts)", async () => {
     const csp = (await fetch(`${baseUrl}/api/health`)).headers.get("content-security-policy");
-    assert.match(csp, /script-src[^;]*cdnjs\.cloudflare\.com/);
-    assert.match(csp, /style-src[^;]*fonts\.googleapis\.com/);
-    assert.match(csp, /font-src[^;]*fonts\.gstatic\.com/);
+    assert.match(csp, /script-src 'self'(;|$)/);
+    assert.doesNotMatch(csp, /cdnjs|googleapis|gstatic/);
   });
 
   test("login is rate limited after 20 attempts", async () => {

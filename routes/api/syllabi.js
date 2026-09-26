@@ -6,6 +6,7 @@
  *   GET    /api/syllabi        list my syllabi (newest first)
  *   POST   /api/syllabi        create
  *   GET    /api/syllabi/:id    read one of mine
+ *   GET    /api/syllabi/:id/pdf download one of mine as a PDF
  *   PUT    /api/syllabi/:id    update one of mine
  *   DELETE /api/syllabi/:id    delete one of mine
  *
@@ -19,6 +20,7 @@ const passport = require("passport");
 
 const Syllabus = require("../../models/syllabus");
 const validateSyllabusInput = require("../../validation/syllabus");
+const { renderSyllabusPdf, pdfFilename } = require("../../services/syllabusPdf");
 
 const router = express.Router();
 
@@ -72,6 +74,23 @@ router.get("/:id", requireValidId, async (req, res) => {
     return res.status(404).json({ error: "Syllabus not found" });
   }
   res.json(syllabus);
+});
+
+/**
+ * @route GET /api/syllabi/:id/pdf
+ * @desc  Stream one of my syllabi as a PDF download.
+ *
+ * The client fetches this with its Authorization header (a plain link would
+ * not carry the token), receives a blob, and triggers the download itself.
+ */
+router.get("/:id/pdf", requireValidId, async (req, res) => {
+  const syllabus = await Syllabus.findOne({ _id: req.params.id, owner: req.user.id });
+  if (!syllabus) {
+    return res.status(404).json({ error: "Syllabus not found" });
+  }
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${pdfFilename(syllabus.title)}"`);
+  renderSyllabusPdf(syllabus.toObject()).pipe(res);
 });
 
 /**

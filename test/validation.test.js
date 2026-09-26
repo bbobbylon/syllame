@@ -25,13 +25,7 @@ describe("validateRegisterInput", () => {
   test("flags every missing field on an empty body", () => {
     const { errors, isValid } = validateRegisterInput({});
     assert.equal(isValid, false);
-    assert.deepEqual(Object.keys(errors).sort(), [
-      "email",
-      "firstname",
-      "lastname",
-      "password",
-      "password2"
-    ]);
+    assert.deepEqual(Object.keys(errors).sort(), ["email", "firstname", "lastname", "password", "password2"]);
   });
 
   test("rejects a malformed email", () => {
