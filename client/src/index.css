@@ -5,14 +5,26 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
-    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * Materialize 2.x makes `.navbar-fixed` itself position: fixed without
+ * reserving space (1.0 kept a placeholder), so the content area pads itself
+ * by the navbar's height: 64px on desktop, 56px on phones.
+ */
 .page-content {
+  padding-top: 64px;
   padding-bottom: 3rem;
+}
+@media (max-width: 600px) {
+  .page-content {
+    padding-top: 56px;
+  }
 }
 
 /* --- Buttons that fill their grid column on phones --- */
@@ -23,46 +35,84 @@ body {
   margin-top: 1rem;
 }
 
-/* --- Navbar --- */
-.nav-toggle {
-  height: 64px;
-  line-height: 64px;
+/* --- Navbar ---
+ * Self-contained layout: a fixed 64px bar (56px on phones) with the brand on
+ * the left and links on the right. Below 993px the links collapse into a
+ * dropdown panel opened by the toggle button.
+ */
+.app-nav {
+  --app-nav-height: 64px;
+  height: var(--app-nav-height);
+}
+.app-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+.app-nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: monospace;
+  font-size: 1.6rem;
+  height: 100%;
+}
+.app-nav-toggle {
+  display: none;
+  height: var(--app-nav-height);
+  line-height: var(--app-nav-height);
   padding: 0 12px;
 }
-.nav-toggle i {
-  line-height: 64px;
+.app-nav-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
-.nav-links .nav-logout {
-  height: 64px;
-  line-height: 64px;
+.app-nav-links li {
+  height: 100%;
+}
+.app-nav-links a,
+.app-nav-links .app-nav-logout {
+  display: block;
+  height: var(--app-nav-height);
+  line-height: var(--app-nav-height);
   padding: 0 15px;
   font-size: 1rem;
   text-transform: none;
+  border-radius: 0;
 }
-.nav-links li a.active {
-  border-bottom: 3px solid #2979ff;
+.app-nav-links a.active {
+  box-shadow: inset 0 -3px 0 #2979ff;
 }
 @media (max-width: 992px) {
+  .app-nav-toggle {
+    display: block;
+  }
   /* Collapsed by default; the toggle button opens it as a vertical list. */
-  .nav-links {
+  .app-nav-links {
     display: none;
     position: absolute;
-    top: 64px;
+    top: var(--app-nav-height);
     left: 0;
     right: 0;
+    height: auto;
     background: #fff;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     flex-direction: column;
+    align-items: stretch;
   }
-  .nav-links.nav-links-open {
+  .app-nav-links.app-nav-links-open {
     display: flex;
   }
-  .nav-links li {
-    float: none;
+  .app-nav-links li {
+    height: auto;
   }
-  .nav-links li a,
-  .nav-links .nav-logout {
-    display: block;
+  .app-nav-links a,
+  .app-nav-links .app-nav-logout {
     width: 100%;
     text-align: left;
     height: 48px;
@@ -70,13 +120,8 @@ body {
   }
 }
 @media (max-width: 600px) {
-  .nav-toggle,
-  .nav-toggle i {
-    height: 56px;
-    line-height: 56px;
-  }
-  .nav-links {
-    top: 56px;
+  .app-nav {
+    --app-nav-height: 56px;
   }
 }
 
@@ -192,4 +237,32 @@ body {
   .syllabus-print-section {
     break-inside: avoid;
   }
+}
+
+/* --- Small form helpers (Materialize 2.x dropped .helper-text) --- */
+.forgot-link {
+  display: block;
+  text-align: right;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+.field-error {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* --- Materialize 2.x adjustments ---
+ * The 2.x fork dropped a few defaults that 1.0 had: inputs inside
+ * .input-field no longer stretch to their column, and <button class="btn-flat">
+ * keeps the browser's default border. Restore both.
+ */
+.input-field input:not([type="checkbox"]):not([type="radio"]),
+.input-field textarea {
+  width: 100%;
+}
+button.btn-flat {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }

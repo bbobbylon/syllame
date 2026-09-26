@@ -33,19 +33,19 @@ function createApp() {
   app.set("trust proxy", 1);
 
   // Security headers. Helmet sets a dozen defensive headers (no MIME
-  // sniffing, no framing by other sites, HSTS, ...). Its Content-Security-
-  // Policy defaults to "same origin only", which would block the Materialize
-  // CSS/JS and Google Fonts that index.html loads from CDNs, so those hosts
-  // are allowed explicitly. `'unsafe-inline'` for styles is needed because
-  // React's `style={{...}}` props and Materialize both write inline styles.
+  // sniffing, no framing by other sites, HSTS, ...). The Content-Security-
+  // Policy is strict "same origin": the UI framework and icon font are
+  // bundled by Vite, so nothing loads from a CDN. `'unsafe-inline'` for
+  // styles is still needed because React's `style={{...}}` props and
+  // Materialize's ripple effect write inline styles.
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           "default-src": ["'self'"],
-          "script-src": ["'self'", "https://cdnjs.cloudflare.com"],
-          "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
-          "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+          "script-src": ["'self'"],
+          "style-src": ["'self'", "'unsafe-inline'"],
+          "font-src": ["'self'"],
           "img-src": ["'self'", "data:"],
           "connect-src": ["'self'"],
           "object-src": ["'none'"],
@@ -53,10 +53,7 @@ function createApp() {
         }
       },
       // Nothing legitimately frames this app; match the CSP frame-ancestors rule.
-      frameguard: { action: "deny" },
-      // The app is same-origin; this header would otherwise block the
-      // Materialize JS from cdnjs in some browsers.
-      crossOriginEmbedderPolicy: false
+      frameguard: { action: "deny" }
     })
   );
 
@@ -69,7 +66,10 @@ function createApp() {
     legacyHeaders: false,
     message: { general: "Too many attempts. Please wait 15 minutes and try again." }
   });
-  app.use(["/api/users/login", "/api/users/register"], authLimiter);
+  app.use(
+    ["/api/users/login", "/api/users/register", "/api/users/forgot-password", "/api/users/reset-password"],
+    authLimiter
+  );
 
   // Body parsing. Express 5 ships these built in; the separate `body-parser`
   // package the original code used is no longer needed.
