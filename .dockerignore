@@ -9,3 +9,9 @@ coverage
 *.log
 .github
 IMPROVEMENTS.md
+test
+.prettierrc.json
+.prettierignore
+render.yaml
+compose.yml
+Dockerfile

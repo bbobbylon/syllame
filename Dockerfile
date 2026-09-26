@@ -22,13 +22,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
-# Server source.
-COPY app.js server.js ./
-COPY config/ ./config/
-COPY models/ ./models/
-COPY routes/ ./routes/
-COPY validation/ ./validation/
-COPY scripts/ ./scripts/
+# Server source. Copying the whole tree (minus .dockerignore entries such as
+# node_modules, .env and the client build output) means a new server folder
+# can never be forgotten; an earlier version listed folders one by one and
+# broke when services/ was added.
+COPY . .
 
 # Compiled client from stage 1, where app.js expects it.
 COPY --from=client-build /app/client/dist ./client/dist
