@@ -28,10 +28,12 @@ syllame/
 ├── app.js               # Builds the Express app (importable by tests)
 ├── config/
 │   ├── env.js           # Reads and validates environment variables
+│   ├── mailer.js        # Sends email via SMTP, or prints it when SMTP_URL is unset
 │   └── passport.js      # JWT strategy: turns a Bearer token into req.user
 ├── models/              # Mongoose schemas: user.js, syllabus.js
 ├── routes/api/          # users.js (auth) and syllabi.js (CRUD)
 ├── validation/          # Server-side form validation
+├── services/            # syllabusPdf.js: renders a syllabus as a PDF (pdfkit)
 ├── scripts/seed.js      # Loads test users and syllabi
 ├── test/                # Server tests (node --test)
 ├── .env.example         # Template for your local .env
@@ -45,9 +47,9 @@ syllame/
         ├── main.jsx     # Mounts React, restores login from localStorage
         ├── App.jsx      # Routes
         ├── store.js     # Redux store (Redux Toolkit configureStore)
-        ├── actions/     # Auth thunks that call the API
-        ├── reducers/    # auth and errors slices
-        ├── api/         # Plain axios helpers for syllabus endpoints
+        ├── store/       # authSlice.js and errorsSlice.js (createSlice)
+        ├── actions/     # Auth thunks (register, login, restore session)
+        ├── api/         # Plain axios helpers: syllabi.js, auth.js
         └── components/  # Pages and shared UI
 ```
 
@@ -83,7 +85,7 @@ cp .env.example .env
 #    - JWT_SECRET: any long random string, e.g.
 #      node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
-# 3. Run API (port 5000, nodemon) and client (port 3000, Vite) together.
+# 3. Run API (port 5000, `node --watch`) and client (port 3000, Vite) together.
 npm run dev
 ```
 
@@ -92,6 +94,12 @@ request to `http://localhost:5000`, so the browser only ever talks to one
 origin and no CORS setup is needed.
 
 Run either side alone with `npm run server` or `npm run client`.
+
+The API restarts itself when server code changes using Node's built-in
+`--watch` flag. It replaced `nodemon`, whose file-watching dependency chain
+carried a high-severity advisory with no patched release. Edits to `.env`
+are not picked up by the watcher; stop and restart `npm run dev` after
+changing it.
 
 ### Seed test data
 
@@ -173,7 +181,7 @@ Root (`/`):
 | Command              | What it does                                                   |
 | -------------------- | -------------------------------------------------------------- |
 | `npm run dev`        | API + client with hot reload                                   |
-| `npm run server`     | API only, restarts on file change (nodemon)                    |
+| `npm run server`     | API only, restarts on file change (`node --watch`)            |
 | `npm run client`     | Client only (Vite dev server)                                  |
 | `npm start`          | API in production mode (no reload). Serves `client/dist` when `NODE_ENV=production` |
 | `npm run build`      | Builds the client into `client/dist`                           |
@@ -347,6 +355,12 @@ Do not set `PORT`; Render injects it and `config/env.js` reads it.
 - **Other hosts.** Railway, Fly.io and Heroku work with the same build and
   start commands and the same three environment variables. Only `render.yaml`
   is Render-specific.
+- **Rate limiting assumes one proxy.** `app.js` sets `trust proxy` to `1`, so
+  Express takes the client IP from the last `X-Forwarded-For` entry, which is
+  the one Render's load balancer adds. That is correct behind exactly one
+  proxy (Render, Railway, Fly, Heroku). With no proxy in front, or two, change
+  that setting to match, or a client can send its own `X-Forwarded-For` header
+  and sidestep the login rate limit.
 
 ---
 
