@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "server": "nodemon server.js",
+    "server": "node --watch server.js",
     "client": "npm run dev --prefix client",
     "client-install": "npm install --prefix client",
     "dev": "concurrently -n server,client -c blue,green \"npm run server\" \"npm run client\"",
@@ -48,8 +48,7 @@
     "validator": "^13.15.35"
   },
   "devDependencies": {
-    "concurrently": "^10.0.5",
-    "nodemon": "^3.1.14",
+    "concurrently": "^10.0.6",
     "prettier": "^3.9.9"
   }
 }

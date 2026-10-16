@@ -1,7 +1,7 @@
 /**
  * Process entry point: connect to MongoDB, then start the HTTP server.
  *
- * Run with `npm start` (production) or `npm run server` (nodemon, restarts on
+ * Run with `npm start` (production) or `npm run server` (node --watch, restarts on
  * file changes). Configuration comes from environment variables; see
  * `config/env.js` and `.env.example`.
  */
